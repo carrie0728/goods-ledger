@@ -336,7 +336,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 <datalist id="dlSeries"></datalist><datalist id="dlChar"></datalist><datalist id="dlType"></datalist>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.1/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -449,7 +449,8 @@ async function startSession(session){
   catch(err){ console.warn(err); setSync(false, navigator.onLine ? '載入失敗，請重新整理' : '離線中（顯示上次的資料）'); }
 }
 async function boot(){
-  if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY || /^YOUR_/.test(CFG.SUPABASE_URL) || !window.supabase){ $('#setupGate').hidden=false; return; }
+  if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY || /^YOUR_/.test(CFG.SUPABASE_URL)){ $('#setupGate').hidden=false; return; }
+  if (!window.supabase){ $('#setupGate').hidden=false; $('#setupGate h2').textContent='連不上伺服器'; $('#setupGate p').textContent='資料庫程式庫沒有載入成功，請確認網路後重新整理。'; $('#setupGate p + p').hidden=true; return; }
   sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
   const { data:{ session } } = await sb.auth.getSession();
   if (session) startSession(session); else showAuth();

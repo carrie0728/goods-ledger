@@ -15,5 +15,5 @@ jobs:
           URL=$(grep -oP "SUPABASE_URL:\s*'\K[^']+" config.js)
           KEY=$(grep -oP "SUPABASE_ANON_KEY:\s*'\K[^']+" config.js)
           if [[ "$URL" == YOUR_* ]]; then echo "config.js 還沒設定，略過"; exit 0; fi
-          curl -fsS "$URL/rest/v1/items?select=id&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
+          curl -fsS "$URL/rest/v1/items?select=id&limit=1" -H "apikey: $KEY"
           echo; echo "ok"
