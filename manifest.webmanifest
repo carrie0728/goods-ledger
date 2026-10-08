@@ -1,0 +1,15 @@
+{
+  "name": "我的谷子帳",
+  "short_name": "谷子帳",
+  "description": "動漫周邊收藏帳本",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF0F6",
+  "theme_color": "#4A3FD1",
+  "lang": "zh-Hant-TW",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
