@@ -356,6 +356,15 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
     <h3 id="menuTitle">帳號與設定</h3>
     <p class="hint" id="menuWho"></p>
     <button class="btn menu-item" id="importBtn">匯入備份（.json）<br><small style="color:var(--muted)">從舊版谷子帳搬資料過來，或還原之前匯出的備份；重複匯入不會產生重複資料</small></button>
+    <div class="btn menu-item" style="display:flex;align-items:center;gap:12px;cursor:default">
+      <img id="logoPreview" src="logo-192.png" alt="" width="44" height="44" style="width:44px;height:44px;border-radius:12px;flex:none">
+      <div style="flex:1;min-width:0">app 圖示<br><small style="color:var(--muted)">換掉標題旁和瀏覽器分頁的圖示，手機、電腦同步</small></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="logoPick" type="button">更換圖示</button>
+      <button class="btn" id="logoReset" type="button" hidden>恢復預設</button>
+      <input type="file" id="logoFile" accept="image/*" hidden>
+    </div>
     <button class="btn menu-item" id="reloadBtn">重新整理資料</button>
     <button class="btn menu-item danger" id="logoutBtn">登出</button>
     <input type="file" id="importFile" accept=".json,application/json" hidden>
@@ -506,6 +515,7 @@ async function startSession(session){
   user = session.user;
   $('#authGate').hidden = true;
   items = lsLoad() || []; render();
+  loadLogo();
   setSync(false,'載入中…');
   try { await loadAll(); subscribe(); }
   catch(err){ console.warn(err);
@@ -522,7 +532,7 @@ async function boot(){
   if (session) startSession(session); else showAuth();
   sb.auth.onAuthStateChange((ev, s)=>{
     if (ev==='SIGNED_IN' && s && (!user || user.id!==s.user.id)) startSession(s);
-    if (ev==='SIGNED_OUT'){ user=null; items=[]; imgUrls.clear(); if (rtChannel) sb.removeChannel(rtChannel); render(); showAuth(); }
+    if (ev==='SIGNED_OUT'){ applyLogo(null); user=null; items=[]; imgUrls.clear(); if (rtChannel) sb.removeChannel(rtChannel); render(); showAuth(); }
   });
   document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState==='visible' && user && Date.now()-lastLoad>60000) loadAll().catch(()=>{}); });
 }
@@ -532,6 +542,53 @@ $('#menuBtn').onclick=()=>{ $('#menuWho').textContent = user ? '登入身分：'
 $('#menuClose').onclick=()=>$('#menuScrim').hidden=true;
 $('#menuScrim').addEventListener('click',e=>{ if(e.target.id==='menuScrim') $('#menuScrim').hidden=true; });
 $('#logoutBtn').onclick=async()=>{ $('#menuScrim').hidden=true; await sb.auth.signOut(); };
+// ---------- custom app logo ----------
+const DEFAULT_LOGO = 'logo-192.png';
+const logoPath = () => `${user.id}/app-logo.jpg`;
+const logoKey = () => LS_KEY+'-logo-'+(user?.id||'');
+function applyLogo(src){
+  const url = src || DEFAULT_LOGO;
+  document.querySelectorAll('.brand img, #logoPreview').forEach(img=>img.src=url);
+  document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(l=>l.href = src || l.getAttribute('data-default') || l.href);
+  $('#logoReset').hidden = !src;
+}
+document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(l=>l.setAttribute('data-default', l.getAttribute('href')));
+function blobToDataUrl(b){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(b); }); }
+function squareLogo(file, size){
+  return new Promise((res,rej)=>{ const url=URL.createObjectURL(file), im=new Image();
+    im.onload=()=>{ const s=Math.min(im.width,im.height), cv=document.createElement('canvas'); cv.width=cv.height=size;
+      cv.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,size,size); URL.revokeObjectURL(url);
+      cv.toBlob(b=>res({blob:b, dataUrl:cv.toDataURL('image/jpeg',.88)}),'image/jpeg',.9); };
+    im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('img')); }; im.src=url; });
+}
+async function loadLogo(){
+  let cached=null; try{ cached=localStorage.getItem(logoKey()); }catch(e){}
+  applyLogo(cached);
+  try{
+    const { data, error } = await sb.storage.from(BUCKET).download(logoPath());
+    if (error || !data){ if (cached && /not.?found|Object not found|400|404/i.test(String(error?.message||error?.statusCode||''))){ try{localStorage.removeItem(logoKey());}catch(e){} applyLogo(null); } return; }
+    const du = await blobToDataUrl(data);
+    if (du!==cached){ try{ localStorage.setItem(logoKey(), du); }catch(e){} applyLogo(du); }
+  }catch(e){}
+}
+$('#logoPick').onclick=()=>$('#logoFile').click();
+$('#logoFile').addEventListener('change', async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    const big = await squareLogo(f, 512), small = await squareLogo(f, 192);
+    applyLogo(small.dataUrl);
+    const { error } = await sb.storage.from(BUCKET).upload(logoPath(), big.blob, { contentType:'image/jpeg', upsert:true });
+    if (error) throw error;
+    try{ localStorage.setItem(logoKey(), small.dataUrl); }catch(err){}
+    toast('圖示已更新');
+  }catch(err){ console.warn(err); toast('圖示上傳失敗，請再試一次'); }
+});
+$('#logoReset').onclick=async()=>{
+  try{ await sb.storage.from(BUCKET).remove([logoPath()]); }catch(e){}
+  try{ localStorage.removeItem(logoKey()); }catch(e){}
+  applyLogo(null); toast('已恢復預設圖示');
+};
+
 $('#reloadBtn').onclick=async()=>{ $('#menuScrim').hidden=true; try{ await loadAll(); toast('已更新'); }catch(e){ toast('更新失敗，請檢查網路'); } };
 $('#importBtn').onclick=()=>$('#importFile').click();
 $('#impClose').onclick=()=>$('#importScrim').hidden=true;

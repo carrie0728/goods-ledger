@@ -1,5 +1,5 @@
 // 離線快取：網頁本體用「網路優先」（有網路就拿最新版），其他靜態檔用「快取優先」
-const CACHE = 'goods-ledger-v7';
+const CACHE = 'goods-ledger-v8';
 const SHELL = ['./', './index.html', './config.js', './manifest.webmanifest', './logo-192.png', './logo-512.png', './logo-apple-180.png', './logo-32.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.1/dist/umd/supabase.js'];
 
