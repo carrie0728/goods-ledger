@@ -8,6 +8,7 @@ create table if not exists public.items (
   user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
   legacy_id   text,                 -- 從舊版匯入時的編號，用來避免重複匯入
   work        text not null default '網球王子',  -- 作品
+  channel     text,                 -- 購入渠道（淘寶、鹹魚、FB…）
   series      text not null,        -- 系列
   chara       text not null,        -- 角色
   type        text not null,        -- 周邊類型
@@ -24,6 +25,7 @@ create table if not exists public.items (
 
 -- 舊資料表升級：加上「作品」欄位（已存在就略過）
 alter table public.items add column if not exists work text not null default '網球王子';
+alter table public.items add column if not exists channel text;
 
 create index if not exists items_user_created on public.items (user_id, created);
 
