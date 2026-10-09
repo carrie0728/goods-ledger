@@ -174,6 +174,13 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 .link{background:none;border:0;color:var(--accent);padding:0;font-size:13px;text-decoration:underline}
 .progress{height:8px;border-radius:999px;background:var(--sunk);overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.fmt{background:var(--sunk);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.fmt-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.06em}
+.fmt-grid{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:3px;align-items:baseline}
+.fmt-grid code{font-family:var(--f-num);font-size:13px;color:var(--ink);white-space:nowrap}
+.fmt-grid span{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.fmt-grid .gap{grid-column:1/-1;height:2px}
+.fmt .btn{padding:4px 12px;font-size:12px}
 .menu-item{text-align:left;border-radius:10px!important;padding:12px 14px!important}
 .workbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
 .workbar::-webkit-scrollbar{display:none}
@@ -232,6 +239,18 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 <div class="scrim" id="editScrim" hidden>
   <form class="sheet" id="editForm" autocomplete="off">
     <h3 id="editTitle">新增周邊</h3>
+    <div class="fmt" id="editFmt">
+      <div class="fmt-head">一次記一整單？用「貼上記帳」<button type="button" class="btn" id="toBulk">改用貼上記帳</button></div>
+      <div class="fmt-grid">
+        <code>241.7r NT1211</code><span>整單總額（人民幣、台幣），可省略</span>
+        <code>家庭教師</code><span>作品</span>
+        <code>揮旗</code><span>系列</span>
+        <code>整盒 徽章 1 25.9r</code><span>角色 類型 數量 人民幣單價</span>
+        <code>整盒 閃徽章 1 29.9r</code><span></span>
+        <code>椅子</code><span>下一個系列</span>
+        <code>雲雀 大立牌 150r</code><span>數量 1 可省略</span>
+      </div>
+    </div>
     <div class="grid2">
       <label class="f">作品<input id="fWork" list="dlWork" required placeholder="例：網球王子"></label>
       <label class="f">系列名稱<input id="fSeries" list="dlSeries" required placeholder="例：戴花"></label>
@@ -300,8 +319,19 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 <div class="scrim" id="bulkScrim" hidden>
   <form class="sheet" id="bulkForm">
     <h3>貼上記帳</h3>
-    <p class="hint">第一行可以寫這筆訂單的總額，例如 <span class="num">241.7r NT1211</span>，會依人民幣比例自動分攤台幣。<br>
-      接著寫作品名、系列名（各自一行），下面每行一件：<span class="num">角色 類型 數量 人民幣單價</span>。數量是 1 可以省略。</p>
+    <div class="fmt">
+      <div class="fmt-head">格式範例<button type="button" class="btn" id="fmtFill">填入範例</button></div>
+      <div class="fmt-grid">
+        <code>241.7r NT1211</code><span>整單總額（人民幣、台幣），可省略</span>
+        <code>家庭教師</code><span>作品</span>
+        <code>揮旗</code><span>系列</span>
+        <code>整盒 徽章 1 25.9r</code><span>角色 類型 數量 人民幣單價</span>
+        <code>整盒 閃徽章 1 29.9r</code><span></span>
+        <code>椅子</code><span>下一個系列</span>
+        <code>雲雀 大立牌 150r</code><span>數量 1 可省略</span>
+      </div>
+      <p class="hint">有寫總額時，台幣會依人民幣比例自動分攤；沒寫總額時，每行最後可以加台幣單價，例如 <span class="num">手塚 立牌 1 161r 800</span>。</p>
+    </div>
     <div class="grid2">
       <label class="f">作品<input id="bulkWork" list="dlWork" required placeholder="例：網球王子"></label>
       <label class="f">購入渠道<input id="bulkChannel" list="dlChannel" placeholder="例：淘寶"></label>
@@ -709,7 +739,7 @@ function openEdit(it=null, series='', work=''){
   $('#fNote').value = it?.note || ''; $('#fChannel').value = it ? (it.channel||'') : ''; const fst = it ? stOf(it) : '已到貨'; document.querySelectorAll('input[name=fst]').forEach(r=>r.checked = r.value===fst);
   $('#fQty').value = it?.qty ?? 1; $('#fCny').value = it && n(it.cny) ? it.cny : ''; $('#fTwd').value = it ? Math.round(n(it.twd)*100)/100 : '';
   setThumb(it ? imgSrc(it) : '');
-  $('#delBtn').hidden = !it; $('#delConfirm').hidden = true;
+  $('#delBtn').hidden = !it; $('#delConfirm').hidden = true; $('#editFmt').hidden = !!it;
   updSum(); $('#editScrim').hidden=false;
   setTimeout(()=>($('#fSeries').value? (it? $('#fQty') : $('#fChar')) : $('#fSeries')).focus(),50);
 }
@@ -822,6 +852,9 @@ function parseBulk(text, knownWorks=[]){
   return res;
 }
 const knownWorksList = () => [...new Set(items.map(workOf))];
+const FMT_SAMPLE='241.7r NT1211\n家庭教師\n揮旗\n整盒 徽章 1 25.9r\n整盒 吊飾 1 35.9r\n整盒 閃徽章 1 29.9r\n椅子\n雲雀 大立牌 150r';
+$('#fmtFill').onclick=()=>{ const t=$('#bulkText'); if (t.value.trim() && !t.value.includes(FMT_SAMPLE)) t.value = FMT_SAMPLE+'\n\n'+t.value; else t.value=FMT_SAMPLE; t.dispatchEvent(new Event('input')); t.focus(); };
+$('#toBulk').onclick=()=>{ closeEdit(); $('#bulkBtn').click(); };
 $('#bulkBtn').onclick=()=>{ if(!$('#bulkWork').value) $('#bulkWork').value = workFilter || DEFAULT_WORK; $('#bulkScrim').hidden=false; updBulk(); setTimeout(()=>$('#bulkText').focus(),50); };
 $('#bulkCancel').onclick=()=>$('#bulkScrim').hidden=true;
 $('#bulkScrim').addEventListener('click',e=>{ if(e.target.id==='bulkScrim') $('#bulkScrim').hidden=true; });
