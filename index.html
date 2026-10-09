@@ -175,6 +175,16 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 .progress{height:8px;border-radius:999px;background:var(--sunk);overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
 .menu-item{text-align:left;border-radius:10px!important;padding:12px 14px!important}
+.workbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
+.workbar::-webkit-scrollbar{display:none}
+.workchip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0}
+.workchip b{font-size:15px;font-weight:900;white-space:nowrap}
+.workchip span{font-family:var(--f-num);font-size:12px;color:var(--muted);white-space:nowrap}
+.workchip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.workchip[aria-pressed="true"] span{color:var(--accent-ink);opacity:.85}
+.work-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 2px 0;border-bottom:2px solid var(--ink)}
+.work-head h2{margin:0;font-size:22px;font-weight:900}
+.work-head span{font-family:var(--f-num);font-size:13px;color:var(--muted);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -185,6 +195,8 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
     <div style="display:flex;align-items:center;gap:12px"><div class="sync" id="sync"><i></i><span>載入中…</span></div><button class="btn" id="exportBtn">匯出</button><button class="icon-btn" id="menuBtn" aria-label="帳號與設定" style="color:var(--ink)">⋯</button></div>
   </header>
 
+  <nav class="workbar" id="workBar" aria-label="作品"></nav>
+
   <section class="totals" aria-label="總計">
     <div><span>件數</span><b class="num" id="tQty">0</b></div>
     <div><span>系列</span><b class="num" id="tSeries">0</b></div>
@@ -193,7 +205,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
   </section>
 
   <div class="bar">
-    <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="搜尋系列、角色、類型"></label>
+    <label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="搜尋作品、系列、角色、類型"></label>
     <div class="seg" role="group" aria-label="檢視方式">
       <button id="vSeries" aria-pressed="true">依系列</button>
       <button id="vChar" aria-pressed="false">依角色</button>
@@ -219,7 +231,10 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 <div class="scrim" id="editScrim" hidden>
   <form class="sheet" id="editForm" autocomplete="off">
     <h3 id="editTitle">新增周邊</h3>
-    <label class="f">系列名稱<input id="fSeries" list="dlSeries" required placeholder="例：戴花"></label>
+    <div class="grid2">
+      <label class="f">作品<input id="fWork" list="dlWork" required placeholder="例：網球王子"></label>
+      <label class="f">系列名稱<input id="fSeries" list="dlSeries" required placeholder="例：戴花"></label>
+    </div>
     <div class="grid2">
       <label class="f">角色<input id="fChar" list="dlChar" required placeholder="例：手塚"></label>
       <label class="f">周邊類型<input id="fType" list="dlType" required placeholder="例：徽章"></label>
@@ -284,6 +299,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
   <form class="sheet" id="bulkForm">
     <h3>批次貼上</h3>
     <p class="hint">單獨一行寫系列名稱，下面每行一件：<br><span class="num">角色 類型 數量 人民幣單價 台幣單價</span>（人民幣後面的 r 可加可不加）</p>
+    <label class="f">作品<input id="bulkWork" list="dlWork" required placeholder="例：網球王子"></label>
     <label class="f">內容<textarea id="bulkText" placeholder="戴花&#10;手塚 徽章 1 30r 150&#10;手塚 立牌 1 161r 800"></textarea></label>
     <div class="preview" id="bulkPreview">還沒有可匯入的資料</div>
     <div class="actions"><div class="r">
@@ -333,7 +349,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 <div class="lightbox" id="lightbox" hidden><img id="lbImg" alt=""></div>
 <div class="toast" id="toast" hidden></div>
 
-<datalist id="dlSeries"></datalist><datalist id="dlChar"></datalist><datalist id="dlType"></datalist>
+<datalist id="dlWork"></datalist><datalist id="dlSeries"></datalist><datalist id="dlChar"></datalist><datalist id="dlType"></datalist>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.1/dist/umd/supabase.js"></script>
@@ -343,11 +359,14 @@ const $ = s => document.querySelector(s);
 const LS_KEY = 'goods-ledger-v1';
 const CFG = window.GOODS_CONFIG || {};
 const BUCKET = 'goods';
-const COLS = 'id,legacy_id,series,chara,type,qty,cny,twd,status,note,image_path,created';
+const COLS = 'id,legacy_id,work,series,chara,type,qty,cny,twd,status,note,image_path,created';
+const DEFAULT_WORK = '網球王子';
 
 let items = [];
 let sb = null, user = null;
 const imgUrls = new Map();          // image_path -> signed url
+let workFilter = null;
+try { workFilter = localStorage.getItem(LS_KEY+'-work') || null; } catch(e){}
 let view = 'series', typeFilter = null, query = '', stFilter = null, sortBy = 'order';
 const STATUSES = ['未付款','已付款','待包貨','已到貨','待售'];
 const ST_CLS = {'未付款':'s-unpaid','已付款':'s-paid','待包貨':'s-pack','已到貨':'s-arrived','待售':'s-sale'};
@@ -359,9 +378,9 @@ try { JSON.parse(localStorage.getItem(LS_KEY+'-closed')||'[]').forEach(s=>closed
 // ---------- storage (Supabase) ----------
 function lsLoad(){ try { const v = localStorage.getItem(LS_KEY+'-'+(user?.id||'')); return v ? JSON.parse(v) : null; } catch(e){ return null; } }
 function lsSave(){ try { localStorage.setItem(LS_KEY+'-'+(user?.id||''), JSON.stringify(items)); } catch(e){} }
-const fromRow = r => ({ id:r.id, legacy_id:r.legacy_id, series:r.series, character:r.chara, type:r.type, qty:Number(r.qty)||1,
+const fromRow = r => ({ id:r.id, legacy_id:r.legacy_id, work:r.work||DEFAULT_WORK, series:r.series, character:r.chara, type:r.type, qty:Number(r.qty)||1,
   cny:Number(r.cny)||0, twd:Number(r.twd)||0, status:r.status, note:r.note||'', image_path:r.image_path||null, created:Number(r.created)||0 });
-const toRow = it => ({ series:it.series, chara:it.character, type:it.type, qty:it.qty, cny:it.cny||0, twd:it.twd||0,
+const toRow = it => ({ work:it.work||DEFAULT_WORK, series:it.series, chara:it.character, type:it.type, qty:it.qty, cny:it.cny||0, twd:it.twd||0,
   status:it.status||'已到貨', note:it.note||null, image_path:it.image_path||null, created:it.created||Date.now() });
 function upsertLocal(it){ const i=items.findIndex(x=>x.id===it.id); if(i>=0) items[i]=it; else items.push(it); }
 
@@ -446,7 +465,9 @@ async function startSession(session){
   items = lsLoad() || []; render();
   setSync(false,'載入中…');
   try { await loadAll(); subscribe(); }
-  catch(err){ console.warn(err); setSync(false, navigator.onLine ? '載入失敗，請重新整理' : '離線中（顯示上次的資料）'); }
+  catch(err){ console.warn(err);
+    if (/work/.test(String(err?.message||''))) { setSync(false,'資料庫還沒加上「作品」欄位'); toast('請先在 Supabase 執行新增作品欄位的 SQL'); return; }
+    setSync(false, navigator.onLine ? '載入失敗，請重新整理' : '離線中（顯示上次的資料）'); }
 }
 async function boot(){
   if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY || /^YOUR_/.test(CFG.SUPABASE_URL)){ $('#setupGate').hidden=false; return; }
@@ -493,7 +514,7 @@ $('#importFile').addEventListener('change', async e=>{
     // 2) upsert rows in batches
     list.forEach((x,i)=>{
       const legacy = String(x.legacy_id || x.id || ('row'+i));
-      rows.push({ user_id:user.id, legacy_id:legacy, series:x.series||'未分類', chara:x.character||x.chara||'其他', type:x.type||'其他',
+      rows.push({ user_id:user.id, legacy_id:legacy, work:x.work||DEFAULT_WORK, series:x.series||'未分類', chara:x.character||x.chara||'其他', type:x.type||'其他',
         qty:Math.max(1,parseInt(x.qty)||1), cny:Number(x.cny)||0, twd:Number(x.twd)||0, status:stOf(x), note:x.note||null,
         image_path: paths[i] || x.image_path || null, created:Number(x.created)||Date.now()+i });
     });
@@ -523,34 +544,47 @@ function imgSrc(it){ return it.image_path ? (imgUrls.get(it.image_path)||'') : '
 function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,1800); }
 
+const workOf = it => it.work || DEFAULT_WORK;
+function scope(){ return workFilter ? items.filter(it=>workOf(it)===workFilter) : items; }
+const gkey = it => workOf(it)+'\u0001'+it.series;
 function filtered(){
   const q = query.trim().toLowerCase();
-  return items.filter(it => (!typeFilter || it.type===typeFilter) && (!stFilter || stOf(it)===stFilter) &&
-    (!q || [it.series,it.character,it.type,it.note].some(s=>String(s||'').toLowerCase().includes(q))));
+  return scope().filter(it => (!typeFilter || it.type===typeFilter) && (!stFilter || stOf(it)===stFilter) &&
+    (!q || [workOf(it),it.series,it.character,it.type,it.note].some(s=>String(s||'').toLowerCase().includes(q))));
 }
 
 // ---------- render ----------
 function render(){
-  // totals over everything
+  // work bar
+  const wm = new Map();
+  items.forEach(it=>{ const w=workOf(it); if(!wm.has(w)) wm.set(w,{q:0,t:0,first:n(it.created)}); const g=wm.get(w); g.q+=n(it.qty); g.t+=n(it.qty)*n(it.twd); g.first=Math.min(g.first,n(it.created)); });
+  if (workFilter && !wm.has(workFilter)) workFilter=null;
+  const works=[...wm].sort((a,b)=>a[1].first-b[1].first);
+  let allQ=0, allT=0; works.forEach(([,g])=>{allQ+=g.q; allT+=g.t;});
+  $('#workBar').innerHTML = works.length ? [`<button class="workchip" data-work="" aria-pressed="${!workFilter}"><b>全部作品</b><span>${allQ} 件・${fmtT(allT)}</span></button>`,
+    ...works.map(([w,g])=>`<button class="workchip" data-work="${esc(w)}" aria-pressed="${workFilter===w}"><b>${esc(w)}</b><span>${g.q} 件・${fmtT(g.t)}</span></button>`)].join('') : '';
+  $('#dlWork').innerHTML = works.map(([w])=>`<option value="${esc(w)}">`).join('');
+  const sItems = scope();
+  // totals over current work
   let q=0,c=0,t=0; const seriesSet=new Set();
-  items.forEach(it=>{ q+=n(it.qty); c+=n(it.qty)*n(it.cny); t+=n(it.qty)*n(it.twd); seriesSet.add(it.series); });
+  sItems.forEach(it=>{ q+=n(it.qty); c+=n(it.qty)*n(it.cny); t+=n(it.qty)*n(it.twd); seriesSet.add(gkey(it)); });
   $('#tQty').textContent=q; $('#tSeries').textContent=seriesSet.size; $('#tCny').textContent=fmtC(c); $('#tTwd').textContent=fmtT(t);
 
   // datalists
-  const uniq = k => [...new Set(items.map(i=>i[k]).filter(Boolean))];
+  const uniq = k => [...new Set(sItems.map(i=>i[k]).filter(Boolean))];
   $('#dlSeries').innerHTML = uniq('series').map(v=>`<option value="${esc(v)}">`).join('');
   $('#dlChar').innerHTML = uniq('character').map(v=>`<option value="${esc(v)}">`).join('');
   const types = uniq('type');
   $('#dlType').innerHTML = types.map(v=>`<option value="${esc(v)}">`).join('');
   if (typeFilter && !types.includes(typeFilter)) typeFilter=null;
-  const tc={}; items.forEach(i=>tc[i.type]=(tc[i.type]||0)+n(i.qty));
+  const tc={}; sItems.forEach(i=>tc[i.type]=(tc[i.type]||0)+n(i.qty));
   $('#typeSel').innerHTML = '<option value="">全部類型</option>' + types.slice().sort((a,b)=>tc[b]-tc[a]).map(tp=>`<option value="${esc(tp)}" ${tp===typeFilter?'selected':''}>${esc(tp)}（${tc[tp]}）</option>`).join('');
   const sc={}; STATUSES.forEach(k=>sc[k]={q:0,t:0});
-  items.forEach(i=>{ const g=sc[stOf(i)]; g.q+=n(i.qty); g.t+=n(i.qty)*n(i.twd); });
+  sItems.forEach(i=>{ const g=sc[stOf(i)]; g.q+=n(i.qty); g.t+=n(i.qty)*n(i.twd); });
   $('#stBar').innerHTML = STATUSES.map(k=>`<button class="stchip" data-st="${k}" aria-pressed="${stFilter===k}"><b><i style="background:${ST_DOT[k]}"></i>${k} ${sc[k].q} 件</b><span class="num">${fmtT(sc[k].t)}</span></button>`).join('');
 
   const list = $('#list');
-  if (!items.length){
+  if (!sItems.length){
     list.innerHTML = `<div class="empty"><b>還沒有任何周邊</b>按「＋ 新增周邊」一件件加入，或用「批次貼上」一次貼上整個系列。<button class="btn pri" data-act="add">＋ 新增第一件</button></div>`;
     return;
   }
@@ -561,14 +595,19 @@ function render(){
   if (view==='series'){
     const groups = new Map();
     rows.slice().sort((a,b)=>n(a.created)-n(b.created)).forEach(it=>{
-      if(!groups.has(it.series)) groups.set(it.series,[]); groups.get(it.series).push(it);
+      const k=gkey(it); if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(it);
     });
-    const gs=[...groups].map(([s,arr])=>{ let sq=0,sc=0,st=0; arr.forEach(it=>{sq+=n(it.qty);sc+=n(it.qty)*n(it.cny);st+=n(it.qty)*n(it.twd);}); return {s,arr,sq,sc,st}; });
+    const gs=[...groups].map(([k,arr])=>{ let sq=0,sc=0,st=0; arr.forEach(it=>{sq+=n(it.qty);sc+=n(it.qty)*n(it.cny);st+=n(it.qty)*n(it.twd);}); return {k,w:workOf(arr[0]),s:arr[0].series,arr,sq,sc,st}; });
     if (sortBy==='twd') gs.sort((a,b)=>b.st-a.st); else if (sortBy==='qty') gs.sort((a,b)=>b.sq-a.sq); else if (sortBy==='name') gs.sort((a,b)=>a.s.localeCompare(b.s,'zh-Hant'));
-    lastSeries = gs.map(g=>g.s);
-    list.innerHTML = gs.map(({s,arr,sq,sc,st})=>{
+    const multi = new Set(gs.map(g=>g.w)).size>1;
+    if (multi){ const wOrder=works.map(([w])=>w); gs.sort((a,b)=>wOrder.indexOf(a.w)-wOrder.indexOf(b.w)); }
+    lastSeries = gs.map(g=>g.k);
+    let curW=null;
+    list.innerHTML = gs.map(({k,w,s,arr,sq,sc,st})=>{
       arr.sort((a,b)=> String(a.character).localeCompare(String(b.character),'zh-Hant') || String(a.type).localeCompare(String(b.type),'zh-Hant'));
-      return `<section class="series ${closed.has(s)?'closed':''}" data-series="${esc(s)}">
+      let head='';
+      if (multi && w!==curW){ curW=w; const wg=gs.filter(g=>g.w===w); head=`<div class="work-head"><h2>${esc(w)}</h2><span>${wg.reduce((a,g)=>a+g.sq,0)} 件・${fmtT(wg.reduce((a,g)=>a+g.st,0))}</span></div>`; }
+      return head+`<section class="series ${closed.has(k)?'closed':''}" data-key="${esc(k)}" data-work="${esc(w)}" data-series="${esc(s)}">
         <div class="s-head">
           <button type="button" class="icon-btn collapse" data-act="toggle" aria-label="展開或收合">▾</button>
           <h2>${esc(s)}</h2>
@@ -611,11 +650,11 @@ $('#list').addEventListener('click', e=>{
   if (act==='add') return openEdit();
   const sec = e.target.closest('.series');
   if (act==='toggle' && sec){
-    const s=sec.dataset.series; closed.has(s)?closed.delete(s):closed.add(s); sec.classList.toggle('closed');
+    const s=sec.dataset.key; closed.has(s)?closed.delete(s):closed.add(s); sec.classList.toggle('closed');
     try{localStorage.setItem(LS_KEY+'-closed',JSON.stringify([...closed]));}catch(err){}
     return;
   }
-  if (act==='addTo' && sec) return openEdit(null, sec.dataset.series);
+  if (act==='addTo' && sec) return openEdit(null, sec.dataset.series, sec.dataset.work);
   const row = e.target.closest('.row'); if(!row) return;
   const it = items.find(x=>x.id===row.dataset.id); if(!it) return;
   if (act==='zoom'){ $('#lbImg').src=imgSrc(it); $('#lbImg').alt=it.character+' '+it.type; $('#lightbox').hidden=false; return; }
@@ -623,6 +662,9 @@ $('#list').addEventListener('click', e=>{
 });
 $('#lightbox').addEventListener('click',()=>$('#lightbox').hidden=true);
 let lastSeries=[];
+$('#workBar').addEventListener('click',e=>{ const b=e.target.closest('.workchip'); if(!b) return; workFilter=b.dataset.work||null;
+  try{ workFilter?localStorage.setItem(LS_KEY+'-work',workFilter):localStorage.removeItem(LS_KEY+'-work'); }catch(err){}
+  typeFilter=null; render(); window.scrollTo({top:0,behavior:'smooth'}); });
 $('#typeSel').addEventListener('change',e=>{ typeFilter=e.target.value||null; render(); });
 $('#stBar').addEventListener('click',e=>{ const b=e.target.closest('.stchip'); if(!b) return; stFilter = stFilter===b.dataset.st ? null : b.dataset.st; render(); });
 $('#sortSel').addEventListener('change',e=>{ sortBy=e.target.value; render(); });
@@ -636,10 +678,12 @@ $('#vSeries').onclick=()=>setView('series'); $('#vChar').onclick=()=>setView('ch
 
 // ---------- edit sheet ----------
 let editing=null, pendingImg=null; // pendingImg: {blob, preview} | 'clear' | null
-function openEdit(it=null, series=''){
+function openEdit(it=null, series='', work=''){
   editing = it; pendingImg=null;
   $('#editTitle').textContent = it ? '編輯周邊' : '新增周邊';
-  $('#fSeries').value = it ? it.series : (series || (items.length ? items[items.length-1].series : ''));
+  const lastIt = items.length ? items.slice().sort((a,b)=>n(a.created)-n(b.created))[items.length-1] : null;
+  $('#fWork').value = it ? workOf(it) : (work || workFilter || (lastIt ? workOf(lastIt) : DEFAULT_WORK));
+  $('#fSeries').value = it ? it.series : (series || (lastIt && workOf(lastIt)===$('#fWork').value ? lastIt.series : ''));
   $('#fChar').value = it?.character||''; $('#fType').value = it?.type||'';
   $('#fNote').value = it?.note || ''; const fst = it ? stOf(it) : '已到貨'; document.querySelectorAll('input[name=fst]').forEach(r=>r.checked = r.value===fst);
   $('#fQty').value = it?.qty ?? 1; $('#fCny').value = it && n(it.cny) ? it.cny : ''; $('#fTwd').value = it ? Math.round(n(it.twd)*100)/100 : '';
@@ -677,7 +721,7 @@ $('#fImg').addEventListener('change', async e=>{
 $('#editForm').addEventListener('submit', async e=>{
   e.preventDefault();
   const it = editing ? {...editing} : {created: Date.now()};
-  it.series=$('#fSeries').value.trim(); it.character=$('#fChar').value.trim(); it.type=$('#fType').value.trim();
+  it.work=$('#fWork').value.trim()||DEFAULT_WORK; it.series=$('#fSeries').value.trim(); it.character=$('#fChar').value.trim(); it.type=$('#fType').value.trim();
   it.qty=Math.max(1,parseInt($('#fQty').value)||1); it.cny=n($('#fCny').value); it.twd=n($('#fTwd').value);
   it.note=$('#fNote').value.trim(); if(!it.note) delete it.note;
   it.status = (document.querySelector('input[name=fst]:checked')||{}).value || '已到貨';
@@ -709,7 +753,7 @@ function parseBulk(text){
   });
   return out;
 }
-$('#bulkBtn').onclick=()=>{ $('#bulkScrim').hidden=false; updBulk(); setTimeout(()=>$('#bulkText').focus(),50); };
+$('#bulkBtn').onclick=()=>{ if(!$('#bulkWork').value) $('#bulkWork').value = workFilter || DEFAULT_WORK; $('#bulkScrim').hidden=false; updBulk(); setTimeout(()=>$('#bulkText').focus(),50); };
 $('#bulkCancel').onclick=()=>$('#bulkScrim').hidden=true;
 $('#bulkScrim').addEventListener('click',e=>{ if(e.target.id==='bulkScrim') $('#bulkScrim').hidden=true; });
 function updBulk(){
@@ -717,13 +761,14 @@ function updBulk(){
   $('#bulkGo').disabled=!r.length;
   if(!r.length){ $('#bulkPreview').textContent='還沒有可匯入的資料'; return; }
   const ss=[...new Set(r.map(x=>x.series))];
-  $('#bulkPreview').textContent=`將匯入 ${r.length} 筆（${ss.join('、')}），合計 ${fmtC(r.reduce((s,x)=>s+x.qty*x.cny,0))} ／ ${fmtT(r.reduce((s,x)=>s+x.qty*x.twd,0))}`;
+  $('#bulkPreview').textContent=`將匯入 ${r.length} 筆到「${$('#bulkWork').value.trim()||DEFAULT_WORK}」（${ss.join('、')}），合計 ${fmtC(r.reduce((s,x)=>s+x.qty*x.cny,0))} ／ ${fmtT(r.reduce((s,x)=>s+x.qty*x.twd,0))}`;
 }
-$('#bulkText').addEventListener('input',updBulk);
+$('#bulkText').addEventListener('input',updBulk); $('#bulkWork').addEventListener('input',updBulk);
 $('#bulkForm').addEventListener('submit',async e=>{
   e.preventDefault(); const r=parseBulk($('#bulkText').value); if(!r.length) return;
   $('#bulkGo').disabled=true; const base=Date.now();
-  try{ for (let i=0;i<r.length;i++) await saveItem({...r[i], created: base+i});
+  const bw = $('#bulkWork').value.trim() || DEFAULT_WORK;
+  try{ for (let i=0;i<r.length;i++) await saveItem({...r[i], work: bw, created: base+i});
     $('#bulkText').value=''; $('#bulkScrim').hidden=true; toast(`已匯入 ${r.length} 筆`);
   }catch(err){ toast('部分資料匯入失敗，請檢查後再試'); }
   finally{ $('#bulkGo').disabled=false; }
@@ -738,18 +783,21 @@ function exportRows(){
 }
 const r2 = v => Math.round(v*100)/100;
 function buildCsv(rows){
-  const head=['系列','角色','類型','數量','狀態','人民幣單價','人民幣小計','台幣單價','台幣小計','備註'];
+  const head=['作品','系列','角色','類型','數量','狀態','人民幣單價','人民幣小計','台幣單價','台幣小計','備註'];
   const q = v => { const t=String(v??''); return /[",\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t; };
   let tq=0,tc=0,tt=0;
   const lines=rows.map(it=>{ const k=n(it.qty)||1, c=n(it.cny), t=n(it.twd); tq+=k; tc+=k*c; tt+=k*t;
-    return [it.series,it.character,it.type,k,stOf(it),c?r2(c):'',c?r2(k*c):'',r2(t),Math.round(k*t),it.note||''].map(q).join(','); });
-  lines.push(['合計','','',tq,'','',tc?r2(tc):'','',Math.round(tt),''].map(q).join(','));
+    return [workOf(it),it.series,it.character,it.type,k,stOf(it),c?r2(c):'',c?r2(k*c):'',r2(t),Math.round(k*t),it.note||''].map(q).join(','); });
+  lines.push(['合計','','','',tq,'','',tc?r2(tc):'','',Math.round(tt),''].map(q).join(','));
   return '\ufeff'+[head.join(','),...lines].join('\r\n');
 }
 function buildTxt(rows){
-  const g=new Map(); rows.forEach(it=>{ if(!g.has(it.series)) g.set(it.series,[]); g.get(it.series).push(it); });
-  let out=[], tt=0;
-  for (const [s,arr] of g){ out.push('【'+s+'】');
+  const g=new Map(); rows.forEach(it=>{ const k=gkey(it); if(!g.has(k)) g.set(k,[]); g.get(k).push(it); });
+  const multi = new Set(rows.map(workOf)).size>1;
+  let out=[], tt=0, curW=null;
+  for (const [k,arr] of g){ const w=workOf(arr[0]), s=arr[0].series;
+    if (multi && w!==curW){ curW=w; out.push('═══ '+w+' ═══'); }
+    out.push('【'+s+'】');
     arr.forEach(it=>{ const k=n(it.qty)||1, tot=Math.round(k*n(it.twd)); tt+=tot; const st=stOf(it);
       out.push(`${it.character} ${it.type}${k>1?'*'+k:''} 💰${tot}${st!=='已到貨'?' ['+st+']':''}${it.note?'（'+it.note+'）':''}`); });
     out.push(''); }
