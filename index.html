@@ -252,6 +252,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
         <code>整盒 閃徽章 1 29.9r</code><span></span>
         <code>椅子</code><span>下一個系列</span>
         <code>雲雀 大立牌 150r</code><span>數量 1 可省略</span>
+        <code>雲雀 徽章 1 42r （閃）</code><span>括弧內是備註</span>
       </div>
     </div>
     <div class="grid2">
@@ -332,8 +333,9 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
         <code>整盒 閃徽章 1 29.9r</code><span></span>
         <code>椅子</code><span>下一個系列</span>
         <code>雲雀 大立牌 150r</code><span>數量 1 可省略</span>
+        <code>雲雀 徽章 1 42r （閃）</code><span>括弧內是備註</span>
       </div>
-      <p class="hint">一單可以有好幾個系列，每個系列名稱各寫一行。標題行容易被誤判時，可以加標註，例如 <span class="num">20周年=>系列</span>、<span class="num">家庭教師=>作品</span>。<br>有寫總額時，台幣會依人民幣比例自動分攤；沒寫總額時，每行最後可以加台幣單價，例如 <span class="num">手塚 立牌 1 161r 800</span>。</p>
+      <p class="hint">一單可以有好幾個系列，每個系列名稱各寫一行；品項後面加（括弧）就是備註。標題行容易被誤判時，可以加標註，例如 <span class="num">20周年=>系列</span>、<span class="num">家庭教師=>作品</span>。<br>有寫總額時，台幣會依人民幣比例自動分攤；沒寫總額時，每行最後可以加台幣單價，例如 <span class="num">手塚 立牌 1 161r 800</span>。</p>
     </div>
     <div class="grid2">
       <label class="f">作品<input id="bulkWork" list="dlWork" required placeholder="例：網球王子"></label>
@@ -875,18 +877,23 @@ function parseBulk(text, knownWorks=[]){
   }
   const alloc = res.twdTotal!=null;
   for (; i<lines.length; i++){
-    const l=lines[i];
+    let l=lines[i];
+    // 行尾的說明標註（例如「（心跳）=>括弧內為備註」）不是系列／作品標註時就忽略
+    l = l.replace(/\s*(?:=>|＝＞|=＞|->|→)\s*(?!(?:系列|作品)\s*$)[^=＞>→]*$/, '').trim();
+    if (!l) continue;
     // 明確標註：「扛旗=>系列」「家庭教師=>作品」「系列：扛旗」「作品：家庭教師」
     let mkName=null, mkKind=null;
     { const a=l.match(/^(.+?)\s*(?:=>|＝＞|=＞|->|→)\s*(系列|作品)$/), b=l.match(/^(系列|作品)\s*[:：]\s*(.+)$/);
       if (a){ mkName=a[1].trim(); mkKind=a[2]; } else if (b){ mkName=b[2].trim(); mkKind=b[1]; } }
     if (mkName){ if (mkKind==='作品') res.work=mkName; else series=mkName; continue; }
-    if (isHeading(l)){
+    // 括弧內是備註：手塚 立牌 1 42r （心跳）
+    const rowNotes=[]; const stripped = l.replace(/[（(]([^（）()]*)[)）]/g,(m,g)=>{ if (g.trim()) rowNotes.push(g.trim()); return ' '; }).replace(/\s+/g,' ').trim();
+    if (isHeading(stripped)){
       const next=lines[i+1];
       if (!res.work && (knownWorks.includes(l) || (next && isHeading(next) && !res.rows.length && !series))) { res.work=l; continue; }
       series=l; continue;
     }
-    const tk=l.split(/[\s,，、\t]+/).filter(Boolean);
+    const tk=stripped.split(/[\s,，、\t]+/).filter(Boolean);
     const nums=[]; while(tk.length && (isCnyTok(tk[tk.length-1])||isTwdTok(tk[tk.length-1])||isBare(tk[tk.length-1])) && nums.length<3) nums.unshift(tk.pop());
     if (!tk.length || !nums.length){ res.skipped.push(l); continue; }
     let qty=null, cny=null, twd=null; const bare=[];
@@ -902,7 +909,7 @@ function parseBulk(text, knownWorks=[]){
     qty = Math.max(1, Math.round(qty||1));
     const character = tk.length>1 ? tk[0] : '其他';
     const type = tk.length>1 ? tk.slice(1).join(' ') : tk[0];
-    res.rows.push({ series: series||'未分類', character, type, qty, cny: cny||0, twd: twd||0 });
+    res.rows.push({ series: series||'未分類', character, type, qty, cny: cny||0, twd: twd||0, note: rowNotes.join('、') });
   }
   // allocate TWD total by RMB share, rounded so the parts add up exactly
   if (alloc && res.rows.length){
@@ -945,7 +952,7 @@ function updBulk(){
   let cur='';
   $('#bulkTable').innerHTML = '<thead><tr><th>角色</th><th>類型</th><th class="n">數量</th><th class="n">人民幣</th><th class="n">台幣</th></tr></thead><tbody>' +
     r.map(x=>{ const h = x.series!==cur ? `<tr><td colspan="5" style="font-weight:900;background:var(--sunk)">${esc(x.series)}</td></tr>` : ''; cur=x.series;
-      return h+`<tr><td>${esc(x.character)}</td><td>${esc(x.type)}</td><td class="n">${x.qty}</td><td class="n c">${x.cny?fmtC(x.qty*x.cny):'—'}</td><td class="n t">${fmtT(x.twdLine)}</td></tr>`; }).join('') + '</tbody>';
+      return h+`<tr><td>${esc(x.character)}</td><td>${esc(x.type)}${x.note?`<div class="types">${esc(x.note)}</div>`:''}</td><td class="n">${x.qty}</td><td class="n c">${x.cny?fmtC(x.qty*x.cny):'—'}</td><td class="n t">${fmtT(x.twdLine)}</td></tr>`; }).join('') + '</tbody>';
 }
 $('#bulkText').addEventListener('input',updBulk);
 $('#bulkForm').addEventListener('submit',async e=>{
@@ -953,7 +960,7 @@ $('#bulkForm').addEventListener('submit',async e=>{
   $('#bulkGo').disabled=true; const base=Date.now();
   const bw = $('#bulkWork').value.trim() || DEFAULT_WORK, bs = $('#bulkStatus').value || '已到貨', bc = $('#bulkChannel').value.trim();
   const orderNote = p.twdTotal!=null ? `整單 ${p.cnyTotal!=null?p.cnyTotal+'r／':''}NT$${p.twdTotal}` : '';
-  try{ for (let i=0;i<r.length;i++){ const {twdLine, ...row}=r[i]; await saveItem({...row, work: bw, status: bs, channel: bc, note: orderNote, created: base+i}); }
+  try{ for (let i=0;i<r.length;i++){ const {twdLine, ...row}=r[i]; await saveItem({...row, work: bw, status: bs, channel: bc, note: [row.note, orderNote].filter(Boolean).join('｜'), created: base+i}); }
     $('#bulkText').value=''; bulkWorkTouched=false; $('#bulkScrim').hidden=true; toast(`已記帳 ${r.length} 筆`);
   }catch(err){ console.warn(err); toast('部分資料記帳失敗，請檢查後再試'); }
   finally{ $('#bulkGo').disabled=false; }
