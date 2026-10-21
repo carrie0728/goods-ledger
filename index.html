@@ -333,7 +333,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
         <code>椅子</code><span>下一個系列</span>
         <code>雲雀 大立牌 150r</code><span>數量 1 可省略</span>
       </div>
-      <p class="hint">有寫總額時，台幣會依人民幣比例自動分攤；沒寫總額時，每行最後可以加台幣單價，例如 <span class="num">手塚 立牌 1 161r 800</span>。</p>
+      <p class="hint">一單可以有好幾個系列，每個系列名稱各寫一行。標題行容易被誤判時，可以加標註，例如 <span class="num">20周年=>系列</span>、<span class="num">家庭教師=>作品</span>。<br>有寫總額時，台幣會依人民幣比例自動分攤；沒寫總額時，每行最後可以加台幣單價，例如 <span class="num">手塚 立牌 1 161r 800</span>。</p>
     </div>
     <div class="grid2">
       <label class="f">作品<input id="bulkWork" list="dlWork" required placeholder="例：網球王子"></label>
@@ -876,6 +876,11 @@ function parseBulk(text, knownWorks=[]){
   const alloc = res.twdTotal!=null;
   for (; i<lines.length; i++){
     const l=lines[i];
+    // 明確標註：「扛旗=>系列」「家庭教師=>作品」「系列：扛旗」「作品：家庭教師」
+    let mkName=null, mkKind=null;
+    { const a=l.match(/^(.+?)\s*(?:=>|＝＞|=＞|->|→)\s*(系列|作品)$/), b=l.match(/^(系列|作品)\s*[:：]\s*(.+)$/);
+      if (a){ mkName=a[1].trim(); mkKind=a[2]; } else if (b){ mkName=b[2].trim(); mkKind=b[1]; } }
+    if (mkName){ if (mkKind==='作品') res.work=mkName; else series=mkName; continue; }
     if (isHeading(l)){
       const next=lines[i+1];
       if (!res.work && (knownWorks.includes(l) || (next && isHeading(next) && !res.rows.length && !series))) { res.work=l; continue; }
