@@ -19,7 +19,7 @@
 :root{
   --bg:#EEF0F6; --surface:#FFFFFF; --sunk:#E3E6F0; --ink:#1C1F33; --muted:#666B85; --line:#D5D9E6;
   --accent:#4A3FD1; --accent-ink:#FFFFFF; --accent-soft:#E4E2FB;
-  --cny:#B4381F; --twd:#0B6E63; --danger:#C0282D; --pend:#8A5A00; --pend-bg:#FBEFD2; --unpaid:#B42318; --unpaid-bg:#FDE7E4; --sale:#A3247A; --sale-bg:#FBE4F2; --pack:#1D5FB8; --pack-bg:#E2ECFB;
+  --cny:#B4381F; --twd:#0B6E63; --danger:#C0282D; --pend:#8A5A00; --pend-bg:#FBEFD2; --unpaid:#B42318; --unpaid-bg:#FDE7E4; --sale:#A3247A; --sale-bg:#FBE4F2; --pack:#1D5FB8; --pack-bg:#E2ECFB; --split:#4B5563; --split-bg:#E5E7EB;
   --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
   --r:12px;
@@ -27,11 +27,11 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#13141F; --surface:#1D1F2E; --sunk:#272A3C; --ink:#ECEDF5; --muted:#9DA1BA; --line:#33364A;
   --accent:#9B92FF; --accent-ink:#14122E; --accent-soft:#2B2850;
-  --cny:#FF9277; --twd:#5ED3C2; --danger:#FF7A7E; --pend:#FFD27A; --pend-bg:#3A3018; --unpaid:#FF9B8F; --unpaid-bg:#3D1C1A; --sale:#F59AD6; --sale-bg:#3A1A31; --pack:#8DB8FF; --pack-bg:#182A44; color-scheme:dark}}
+  --cny:#FF9277; --twd:#5ED3C2; --danger:#FF7A7E; --pend:#FFD27A; --pend-bg:#3A3018; --unpaid:#FF9B8F; --unpaid-bg:#3D1C1A; --sale:#F59AD6; --sale-bg:#3A1A31; --pack:#8DB8FF; --pack-bg:#182A44; --split:#C7CDD6; --split-bg:#2A2F38; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#13141F; --surface:#1D1F2E; --sunk:#272A3C; --ink:#ECEDF5; --muted:#9DA1BA; --line:#33364A;
   --accent:#9B92FF; --accent-ink:#14122E; --accent-soft:#2B2850;
-  --cny:#FF9277; --twd:#5ED3C2; --danger:#FF7A7E; --pend:#FFD27A; --pend-bg:#3A3018; --unpaid:#FF9B8F; --unpaid-bg:#3D1C1A; --sale:#F59AD6; --sale-bg:#3A1A31; --pack:#8DB8FF; --pack-bg:#182A44; color-scheme:dark}
+  --cny:#FF9277; --twd:#5ED3C2; --danger:#FF7A7E; --pend:#FFD27A; --pend-bg:#3A3018; --unpaid:#FF9B8F; --unpaid-bg:#3D1C1A; --sale:#F59AD6; --sale-bg:#3A1A31; --pack:#8DB8FF; --pack-bg:#182A44; --split:#C7CDD6; --split-bg:#2A2F38; color-scheme:dark}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
@@ -67,13 +67,13 @@ header.top h1 small{display:block;font-size:12px;font-weight:500;color:var(--mut
 .chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .sel{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;max-width:100%}
 .pill{font-size:11px;font-weight:700;border-radius:4px;padding:1px 6px;background:var(--pend-bg);color:var(--pend);white-space:nowrap}
-.pill.s-unpaid{background:var(--unpaid-bg);color:var(--unpaid)} .pill.s-sale{background:var(--sale-bg);color:var(--sale)} .pill.s-pack{background:var(--pack-bg);color:var(--pack)}
+.pill.s-unpaid{background:var(--unpaid-bg);color:var(--unpaid)} .pill.s-sale{background:var(--sale-bg);color:var(--sale)} .pill.s-pack{background:var(--pack-bg);color:var(--pack)} .pill.s-split{background:var(--split-bg);color:var(--split);border:1px dashed var(--split)}
 .stbar{display:flex;gap:6px;flex-wrap:wrap}
 .stchip{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:5px 10px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:flex-start;line-height:1.3;min-width:0}
 .stchip b{font-size:13px;color:var(--ink)} .stchip .num{font-size:12px}
 .stchip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .stchip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
-.stseg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.stseg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .stseg span{font-size:13px!important;padding:8px 2px!important;white-space:nowrap}
 .stseg label{position:relative}
 .stseg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
@@ -184,6 +184,14 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 .fmt .btn{padding:4px 12px;font-size:12px}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 .brand img{width:52px;height:52px;border-radius:14px;flex:none;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.blist{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.bser{font-weight:900;background:var(--sunk);padding:6px 10px;font-size:13px}
+.brow{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-top:1px solid var(--line)}
+.brow .thumb{width:48px;height:48px;cursor:pointer;border:1px dashed var(--line);font-size:11px;text-align:center;line-height:1.2}
+.brow .thumb.has{border-style:solid}
+.bmain{min-width:0;display:flex;flex-direction:column;gap:4px}
+.bmain b{font-size:14px;overflow-wrap:anywhere}
+.bnote{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 8px;font-size:14px;width:100%;min-width:0}
 .menu-item{text-align:left;border-radius:10px!important;padding:12px 14px!important}
 .workbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
 .workbar::-webkit-scrollbar{display:none}
@@ -219,6 +227,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
     <div class="seg" role="group" aria-label="檢視方式">
       <button id="vSeries" aria-pressed="true">依系列</button>
       <button id="vChar" aria-pressed="false">依角色</button>
+      <button id="vStatus" aria-pressed="false">依狀態</button>
     </div>
   </div>
   <div class="stbar" id="stBar" role="group" aria-label="依狀態篩選"></div>
@@ -263,6 +272,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
       <label class="f">角色<input id="fChar" list="dlChar" required placeholder="例：手塚"></label>
       <label class="f">周邊類型<input id="fType" list="dlType" required placeholder="例：徽章"></label>
     </div>
+    <p class="hint" id="splitHint" hidden style="margin:0;background:var(--split-bg);color:var(--split);padding:8px 10px;border-radius:8px">待分帳：只要填系列、總價（數量 1、單價填整單金額）和圖片就能存，角色和類型可以留空。之後點開這筆按「開始分帳」再拆成明細。</p>
     <div class="grid3">
       <label class="f">數量<input id="fQty" type="number" min="1" step="1" inputmode="numeric" value="1" required></label>
       <label class="f cur">人民幣單價<span>¥</span><input id="fCny" type="number" min="0" step="any" inputmode="decimal" placeholder="30"></label>
@@ -278,6 +288,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
         <label><input type="radio" name="fst" value="待包貨"><span>待包貨</span></label>
         <label><input type="radio" name="fst" value="已到貨"><span>已到貨</span></label>
         <label><input type="radio" name="fst" value="待售"><span>待售</span></label>
+        <label><input type="radio" name="fst" value="待分帳"><span>待分帳</span></label>
       </div></div>
     <div class="imgpick">
       <div class="thumb" id="fThumb">無圖片</div>
@@ -290,6 +301,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
     <div id="delConfirm" class="confirm" hidden>確定刪除這筆周邊？<button type="button" class="btn danger" id="delYes">刪除</button><button type="button" class="btn" id="delNo">取消</button></div>
     <div class="actions">
       <button type="button" class="btn danger" id="delBtn" hidden>刪除</button>
+      <button type="button" class="btn" id="splitBtn" hidden>開始分帳</button>
       <div class="r">
         <button type="button" class="btn" id="cancelBtn">取消</button>
         <button type="submit" class="btn pri" id="saveBtn">儲存</button>
@@ -323,6 +335,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 <div class="scrim" id="bulkScrim" hidden>
   <form class="sheet" id="bulkForm">
     <h3>貼上記帳</h3>
+    <p class="hint" id="splitBanner" hidden style="margin:0;background:var(--split-bg);color:var(--split);padding:8px 10px;border-radius:8px"></p>
     <div class="fmt">
       <div class="fmt-head">格式範例<button type="button" class="btn" id="fmtFill">填入範例</button></div>
       <div class="fmt-grid">
@@ -341,11 +354,11 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
       <label class="f">作品<input id="bulkWork" list="dlWork" required placeholder="例：網球王子"></label>
       <label class="f">購入渠道<input id="bulkChannel" list="dlChannel" placeholder="例：淘寶"></label>
       <label class="f">狀態<select id="bulkStatus" class="sel" style="border-radius:8px;padding:9px 10px;font-size:16px;background:var(--bg)">
-        <option>未付款</option><option>已付款</option><option>待包貨</option><option selected>已到貨</option><option>待售</option></select></label>
+        <option>未付款</option><option>已付款</option><option>待包貨</option><option selected>已到貨</option><option>待售</option><option>待分帳</option></select></label>
     </div>
     <label class="f">內容<textarea id="bulkText" placeholder="241.7r NT1211&#10;家庭教師&#10;揮旗&#10;整盒 徽章 1 25.9r&#10;整盒 吊飾 1 35.9r&#10;椅子&#10;雲雀 大立牌 150r"></textarea></label>
     <div class="preview" id="bulkPreview">還沒有可匯入的資料</div>
-    <div class="tablebox" id="bulkTableBox" hidden><table id="bulkTable" style="min-width:0;font-size:13px"></table></div>
+    <div id="bulkTableBox" hidden><p class="hint" style="margin:0 0 6px">點左邊方框可以幫每一件加圖片，備註也可以直接改。</p><div class="blist" id="bulkTable"></div></div>
     <div class="actions"><div class="r">
       <button type="button" class="btn" id="bulkCancel">取消</button>
       <button type="submit" class="btn pri" id="bulkGo" disabled>記帳</button>
@@ -422,9 +435,9 @@ const imgUrls = new Map();          // image_path -> signed url
 let workFilter = null, chFilter = null;
 try { workFilter = localStorage.getItem(LS_KEY+'-work') || null; } catch(e){}
 let view = 'series', typeFilter = null, query = '', stFilter = null, sortBy = 'order';
-const STATUSES = ['未付款','已付款','待包貨','已到貨','待售'];
-const ST_CLS = {'未付款':'s-unpaid','已付款':'s-paid','待包貨':'s-pack','已到貨':'s-arrived','待售':'s-sale'};
-const ST_DOT = {'未付款':'var(--unpaid)','已付款':'var(--pend)','待包貨':'var(--pack)','已到貨':'var(--twd)','待售':'var(--sale)'};
+const STATUSES = ['未付款','已付款','待包貨','已到貨','待售','待分帳'];
+const ST_CLS = {'未付款':'s-unpaid','已付款':'s-paid','待包貨':'s-pack','已到貨':'s-arrived','待售':'s-sale','待分帳':'s-split'};
+const ST_DOT = {'未付款':'var(--unpaid)','已付款':'var(--pend)','待包貨':'var(--pack)','已到貨':'var(--twd)','待售':'var(--sale)','待分帳':'var(--split)'};
 function stOf(it){ if (STATUSES.includes(it.status)) return it.status; if (it.status==='待出貨') return '已付款'; return '已到貨'; }
 const closed = new Set();
 try { JSON.parse(localStorage.getItem(LS_KEY+'-closed')||'[]').forEach(s=>closed.add(s)); } catch(e){}
@@ -448,7 +461,7 @@ async function saveItem(it){
 async function removeItem(it){
   const { error } = await sb.from('items').delete().eq('id', it.id);
   if (error) throw error;
-  if (it.image_path) sb.storage.from(BUCKET).remove([it.image_path]).catch(()=>{});
+  if (it.image_path && !items.some(x=>x.id!==it.id && x.image_path===it.image_path)) sb.storage.from(BUCKET).remove([it.image_path]).catch(()=>{});
   items = items.filter(x=>x.id!==it.id); lsSave(); render();
 }
 async function uploadImage(blob, name){
@@ -702,7 +715,25 @@ function render(){
   const rows = filtered();
   if (!rows.length){ list.innerHTML = `<div class="empty"><b>找不到符合的周邊</b>換個關鍵字或類型試試。</div>`; return; }
 
-  $('#foldAll').hidden = view!=='series'; $('#sortSel').hidden = view!=='series';
+  $('#foldAll').hidden = view==='char'; $('#sortSel').hidden = view!=='series';
+  if (view==='status'){
+    const wOrder = works.map(([w])=>w);
+    const gs = STATUSES.map(st=>{ const arr=rows.filter(it=>stOf(it)===st); let sq=0,sc=0,stt=0; arr.forEach(it=>{sq+=n(it.qty);sc+=n(it.qty)*n(it.cny);stt+=n(it.qty)*n(it.twd);}); return {k:'st|'+st, st, arr, sq, sc, stt}; }).filter(g=>g.arr.length);
+    lastSeries = gs.map(g=>g.k);
+    list.innerHTML = gs.map(({k,st,arr,sq,sc,stt})=>{
+      arr.sort((a,b)=> wOrder.indexOf(workOf(a))-wOrder.indexOf(workOf(b)) || n(a.created)-n(b.created));
+      return `<section class="series ${closed.has(k)?'closed':''}" data-key="${esc(k)}">
+        <div class="s-head">
+          <button type="button" class="icon-btn collapse" data-act="toggle" aria-label="展開或收合">▾</button>
+          <h2><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${ST_DOT[st]};margin-right:8px;vertical-align:2px"></i>${esc(st)}</h2>
+          <div class="meta"><span class="num">${sq} 件</span>${sc>0?`<span class="num c">${fmtC(sc)}</span>`:''}<span class="num t">${fmtT(stt)}</span></div>
+        </div>
+        <div class="rows">${arr.map(it=>rowHtml(it,true)).join('')}</div>
+      </section>`;
+    }).join('');
+    $('#foldAll').textContent = lastSeries.length && lastSeries.every(s=>closed.has(s)) ? '全部展開' : '全部收合';
+    return;
+  }
   if (view==='series'){
     const groups = new Map();
     rows.slice().sort((a,b)=>n(a.created)-n(b.created)).forEach(it=>{
@@ -742,12 +773,12 @@ function render(){
     }</tbody></table></div>`;
   }
 }
-function rowHtml(it){
+function rowHtml(it, showWhere=false){
   const src=imgSrc(it), q=n(it.qty);
   const unit = q>1 ? `<small>單價 ${[cnyPart(n(it.cny)), fmtT(n(it.twd))].filter(Boolean).join(' ／ ')}</small>` : '';
   const st = stOf(it);
-  const pend = st!=='已到貨' ? `<span class="pill ${ST_CLS[st]}">${st}</span>` : '';
-  const meta = [it.channel, it.note].filter(Boolean).join('・');
+  const pend = (!showWhere && st!=='已到貨') ? `<span class="pill ${ST_CLS[st]}">${st}</span>` : '';
+  const meta = [showWhere ? workOf(it)+'｜'+it.series : '', it.channel, it.note].filter(Boolean).join('・');
   const note = meta ? `<span class="note">${esc(meta)}</span>` : '';
   return `<button type="button" class="row" data-id="${esc(it.id)}">
     <span class="thumb" ${src?'data-act="zoom"':''}>${src?`<img src="${esc(src)}" alt="${esc(it.character+' '+it.type)}" loading="lazy">`:'無圖'}</span>
@@ -786,8 +817,9 @@ $('#foldAll').onclick=()=>{ const allClosed = lastSeries.length && lastSeries.ev
   try{localStorage.setItem(LS_KEY+'-closed',JSON.stringify([...closed]));}catch(err){}
   render(); };
 $('#q').addEventListener('input',e=>{ query=e.target.value; render(); });
-function setView(v){ view=v; $('#vSeries').setAttribute('aria-pressed',v==='series'); $('#vChar').setAttribute('aria-pressed',v==='char'); render(); }
-$('#vSeries').onclick=()=>setView('series'); $('#vChar').onclick=()=>setView('char');
+function setView(v){ view=v; $('#vSeries').setAttribute('aria-pressed',v==='series'); $('#vChar').setAttribute('aria-pressed',v==='char'); $('#vStatus').setAttribute('aria-pressed',v==='status'); try{localStorage.setItem(LS_KEY+'-view',v);}catch(e){} render(); }
+$('#vSeries').onclick=()=>setView('series'); $('#vChar').onclick=()=>setView('char'); $('#vStatus').onclick=()=>setView('status');
+try{ const sv=localStorage.getItem(LS_KEY+'-view'); if (sv==='char'||sv==='status'){ view=sv; ['vSeries','vChar','vStatus'].forEach(id=>$('#'+id).setAttribute('aria-pressed', id==={series:'vSeries',char:'vChar',status:'vStatus'}[sv])); } }catch(e){}
 
 // ---------- edit sheet ----------
 let editing=null, pendingImg=null; // pendingImg: {blob, preview} | 'clear' | null
@@ -802,6 +834,7 @@ function openEdit(it=null, series='', work=''){
   $('#fQty').value = it?.qty ?? 1; $('#fCny').value = it && n(it.cny) ? it.cny : ''; $('#fTwd').value = it ? Math.round(n(it.twd)*100)/100 : '';
   setThumb(it ? imgSrc(it) : '');
   $('#delBtn').hidden = !it; $('#delConfirm').hidden = true; $('#editFmt').hidden = !!it;
+  updSplitUi();
   updSum(); $('#editScrim').hidden=false;
   setTimeout(()=>($('#fSeries').value? (it? $('#fQty') : $('#fChar')) : $('#fSeries')).focus(),50);
 }
@@ -831,10 +864,25 @@ $('#fImg').addEventListener('change', async e=>{
   try{ const r=await shrink(f,1400,.85); pendingImg={blob:r.blob, preview:URL.createObjectURL(r.blob)}; setThumb(pendingImg.preview); }catch(err){ toast('這張圖片讀不出來，換一張試試'); }
 });
 
+function curFst(){ return (document.querySelector('input[name=fst]:checked')||{}).value || '已到貨'; }
+function updSplitUi(){ const sp = curFst()==='待分帳';
+  $('#splitHint').hidden = !sp; $('#fChar').required = !sp; $('#fType').required = !sp; $('#fSeries').required = !sp;
+  $('#splitBtn').hidden = !(editing && stOf(editing)==='待分帳'); }
+document.querySelectorAll('input[name=fst]').forEach(r=>r.addEventListener('change', updSplitUi));
+// 分帳：把一筆待分帳拆成明細
+let splitSource=null;
+$('#splitBtn').onclick=()=>{
+  const it=editing; if(!it) return; closeEdit(); splitSource=it;
+  const tw=Math.round(n(it.qty)*n(it.twd)), cn=Math.round(n(it.qty)*n(it.cny)*100)/100;
+  $('#bulkWork').value=workOf(it); bulkWorkTouched=true; $('#bulkChannel').value=it.channel||''; $('#bulkStatus').value='已到貨';
+  $('#bulkText').value=`${cn?cn+'r ':''}NT${tw}\n${it.series && it.series!=='待分帳' ? it.series+'\n' : ''}`;
+  $('#splitBanner').hidden=false; $('#splitBanner').textContent=`正在分帳：${workOf(it)}｜${it.series||''} 整單 ${fmtT(tw)}。在下面寫上每一件的明細，記帳後會取代原本這筆待分帳；沒有另外加圖的品項會沿用原本的圖片。`;
+  $('#bulkScrim').hidden=false; updBulk(); setTimeout(()=>{ const t=$('#bulkText'); t.focus(); t.setSelectionRange(t.value.length,t.value.length); },50);
+};
 $('#editForm').addEventListener('submit', async e=>{
   e.preventDefault();
   const it = editing ? {...editing} : {created: Date.now()};
-  it.work=$('#fWork').value.trim()||DEFAULT_WORK; it.series=$('#fSeries').value.trim(); it.character=$('#fChar').value.trim(); it.type=$('#fType').value.trim();
+  it.work=$('#fWork').value.trim()||DEFAULT_WORK; it.series=$('#fSeries').value.trim()||'待分帳'; it.character=$('#fChar').value.trim()||'多件'; it.type=$('#fType').value.trim()||'待分帳';
   it.qty=Math.max(1,parseInt($('#fQty').value)||1); it.cny=n($('#fCny').value); it.twd=n($('#fTwd').value);
   it.note=$('#fNote').value.trim(); if(!it.note) delete it.note;
   it.channel=$('#fChannel').value.trim();
@@ -845,7 +893,7 @@ $('#editForm').addEventListener('submit', async e=>{
     if (pendingImg==='clear'){ it.image_path=null; }
     else if (pendingImg?.blob){ it.image_path = await uploadImage(pendingImg.blob); }
     await saveItem(it);
-    if (oldPath && oldPath!==it.image_path) sb.storage.from(BUCKET).remove([oldPath]).catch(()=>{});
+    if (oldPath && oldPath!==it.image_path && !items.some(x=>x.image_path===oldPath)) sb.storage.from(BUCKET).remove([oldPath]).catch(()=>{});
     closeEdit(); toast(editing?'已儲存':'已新增');
   }catch(err){ console.warn(err); toast(navigator.onLine?'儲存失敗，請再試一次':'目前離線，連上網路後再儲存'); }
   finally{ $('#saveBtn').disabled=false; }
@@ -928,8 +976,9 @@ const FMT_SAMPLE='241.7r NT1211\n家庭教師\n揮旗\n整盒 徽章 1 25.9r\n�
 $('#fmtFill').onclick=()=>{ const t=$('#bulkText'); if (t.value.trim() && !t.value.includes(FMT_SAMPLE)) t.value = FMT_SAMPLE+'\n\n'+t.value; else t.value=FMT_SAMPLE; t.dispatchEvent(new Event('input')); t.focus(); };
 $('#toBulk').onclick=()=>{ closeEdit(); $('#bulkBtn').click(); };
 $('#bulkBtn').onclick=()=>{ if(!$('#bulkWork').value) $('#bulkWork').value = workFilter || DEFAULT_WORK; $('#bulkScrim').hidden=false; updBulk(); setTimeout(()=>$('#bulkText').focus(),50); };
-$('#bulkCancel').onclick=()=>$('#bulkScrim').hidden=true;
-$('#bulkScrim').addEventListener('click',e=>{ if(e.target.id==='bulkScrim') $('#bulkScrim').hidden=true; });
+function closeBulk(){ $('#bulkScrim').hidden=true; if (splitSource){ splitSource=null; $('#splitBanner').hidden=true; $('#bulkText').value=''; bulkWorkTouched=false; } }
+$('#bulkCancel').onclick=closeBulk;
+$('#bulkScrim').addEventListener('click',e=>{ if(e.target.id==='bulkScrim') closeBulk(); });
 let bulkWorkTouched=false;
 $('#bulkWork').addEventListener('input',()=>{ bulkWorkTouched=true; updBulk(); });
 function updBulk(){
@@ -949,21 +998,47 @@ function updBulk(){
   }
   if (p.skipped.length) msg += `。略過看不懂的行：${p.skipped.join('／')}`;
   $('#bulkPreview').textContent=msg;
-  let cur='';
-  $('#bulkTable').innerHTML = '<thead><tr><th>角色</th><th>類型</th><th class="n">數量</th><th class="n">人民幣</th><th class="n">台幣</th></tr></thead><tbody>' +
-    r.map(x=>{ const h = x.series!==cur ? `<tr><td colspan="5" style="font-weight:900;background:var(--sunk)">${esc(x.series)}</td></tr>` : ''; cur=x.series;
-      return h+`<tr><td>${esc(x.character)}</td><td>${esc(x.type)}${x.note?`<div class="types">${esc(x.note)}</div>`:''}</td><td class="n">${x.qty}</td><td class="n c">${x.cny?fmtC(x.qty*x.cny):'—'}</td><td class="n t">${fmtT(x.twdLine)}</td></tr>`; }).join('') + '</tbody>';
+  let cur=''; const keys=bulkKeys(r);
+  $('#bulkTable').innerHTML = r.map((x,i)=>{ const k=keys[i], ex=bulkExtras.get(k)||{};
+      const h = x.series!==cur ? `<div class="bser">${esc(x.series)}</div>` : ''; cur=x.series;
+      const noteVal = ex.note!==undefined ? ex.note : (x.note||'');
+      return h+`<div class="brow" data-k="${esc(k)}">
+        <label class="thumb ${ex.preview?'has':''}">${ex.preview?`<img src="${esc(ex.preview)}" alt="">`:'＋圖片'}<input type="file" accept="image/*" hidden data-k="${esc(k)}"></label>
+        <div class="bmain"><b>${esc(x.character)} ${esc(x.type)} <span class="qty">×${x.qty}</span></b><input class="bnote" data-k="${esc(k)}" placeholder="備註" value="${esc(noteVal)}"></div>
+        <span class="price">${x.cny?`<span class="c">${fmtC(x.qty*x.cny)}</span>`:''}<span class="t">${fmtT(x.twdLine)}</span></span>
+      </div>`; }).join('');
 }
+// 每一列的圖片與備註（依「系列|角色|類型|第幾個」對應，改文字時盡量保留）
+const bulkExtras = new Map();
+function bulkKeys(rows){ const seen={}; return rows.map(x=>{ const b=`${x.series}|${x.character}|${x.type}`; seen[b]=(seen[b]||0)+1; return b+'|'+seen[b]; }); }
+$('#bulkTable').addEventListener('change', async e=>{
+  const inp=e.target; if (inp.type!=='file') return; const f=inp.files[0]; const k=inp.dataset.k; if(!f) return;
+  try{ const r=await shrink(f,1400,.85); const ex=bulkExtras.get(k)||{}; if (ex.preview) URL.revokeObjectURL(ex.preview);
+    ex.blob=r.blob; ex.preview=URL.createObjectURL(r.blob); bulkExtras.set(k,ex);
+    const lab=inp.closest('label'); lab.classList.add('has'); lab.querySelectorAll('img').forEach(x=>x.remove()); lab.childNodes.forEach(nd=>{ if(nd.nodeType===3) nd.remove(); });
+    const im=document.createElement('img'); im.src=ex.preview; im.alt=''; lab.prepend(im);
+  }catch(err){ toast('這張圖片讀不出來，換一張試試'); }
+});
+$('#bulkTable').addEventListener('input', e=>{ const inp=e.target; if(!inp.classList.contains('bnote')) return; const k=inp.dataset.k; const ex=bulkExtras.get(k)||{}; ex.note=inp.value; bulkExtras.set(k,ex); });
 $('#bulkText').addEventListener('input',updBulk);
 $('#bulkForm').addEventListener('submit',async e=>{
   e.preventDefault(); const p=parseBulk($('#bulkText').value, knownWorksList()); const r=p.rows; if(!r.length) return;
   $('#bulkGo').disabled=true; const base=Date.now();
   const bw = $('#bulkWork').value.trim() || DEFAULT_WORK, bs = $('#bulkStatus').value || '已到貨', bc = $('#bulkChannel').value.trim();
   const orderNote = p.twdTotal!=null ? `整單 ${p.cnyTotal!=null?p.cnyTotal+'r／':''}NT$${p.twdTotal}` : '';
-  try{ for (let i=0;i<r.length;i++){ const {twdLine, ...row}=r[i]; await saveItem({...row, work: bw, status: bs, channel: bc, note: [row.note, orderNote].filter(Boolean).join('｜'), created: base+i}); }
+  const keys=bulkKeys(r); let done=0;
+  try{ for (let i=0;i<r.length;i++){ const {twdLine, ...row}=r[i]; const ex=bulkExtras.get(keys[i])||{};
+      const rowNote = (ex.note!==undefined ? ex.note : row.note||'').trim();
+      let image_path = splitSource?.image_path || null; if (ex.blob){ $('#bulkGo').textContent=`上傳圖片 ${i+1}/${r.length}…`; image_path = await uploadImage(ex.blob); }
+      await saveItem({...row, work: bw, status: bs, channel: bc, image_path, note: [rowNote, orderNote].filter(Boolean).join('｜'), created: base+i}); done++; }
+    if (splitSource){ const src=splitSource; splitSource=null; $('#splitBanner').hidden=true;
+      const { error } = await sb.from('items').delete().eq('id', src.id);
+      if (!error){ items = items.filter(x=>x.id!==src.id); lsSave(); render(); }
+      else toast('明細已記帳，但原本的待分帳沒有刪掉，請手動刪除'); }
+    bulkExtras.forEach(ex=>{ if (ex.preview) URL.revokeObjectURL(ex.preview); }); bulkExtras.clear();
     $('#bulkText').value=''; bulkWorkTouched=false; $('#bulkScrim').hidden=true; toast(`已記帳 ${r.length} 筆`);
-  }catch(err){ console.warn(err); toast('部分資料記帳失敗，請檢查後再試'); }
-  finally{ $('#bulkGo').disabled=false; }
+  }catch(err){ console.warn(err); toast(done ? `已記帳 ${done} 筆，第 ${done+1} 筆起失敗，請檢查後再試` : '記帳失敗，請檢查網路後再試'); }
+  finally{ $('#bulkGo').disabled=false; $('#bulkGo').textContent='記帳'; }
 });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEdit(); $('#exportScrim').hidden=true; $('#menuScrim').hidden=true; $('#bulkScrim').hidden=true; $('#lightbox').hidden=true; }});
 
