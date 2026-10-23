@@ -283,12 +283,12 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
     <label class="f">備註<input id="fNote" placeholder="例：一對、含殼、編號 33"></label>
     <div class="f" style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)">狀態
       <div class="stseg" id="fStatus" role="radiogroup" aria-label="狀態">
+        <label><input type="radio" name="fst" value="待分帳"><span>待分帳</span></label>
         <label><input type="radio" name="fst" value="未付款"><span>未付款</span></label>
-        <label><input type="radio" name="fst" value="已付款"><span>已付款</span></label>
-        <label><input type="radio" name="fst" value="待包貨"><span>待包貨</span></label>
+        <label><input type="radio" name="fst" value="待出荷"><span>待出荷</span></label>
         <label><input type="radio" name="fst" value="已到貨"><span>已到貨</span></label>
         <label><input type="radio" name="fst" value="待售"><span>待售</span></label>
-        <label><input type="radio" name="fst" value="待分帳"><span>待分帳</span></label>
+        <label><input type="radio" name="fst" value="待包貨"><span>待包貨</span></label>
       </div></div>
     <div class="imgpick">
       <div class="thumb" id="fThumb">無圖片</div>
@@ -354,7 +354,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
       <label class="f">作品<input id="bulkWork" list="dlWork" required placeholder="例：網球王子"></label>
       <label class="f">購入渠道<input id="bulkChannel" list="dlChannel" placeholder="例：淘寶"></label>
       <label class="f">狀態<select id="bulkStatus" class="sel" style="border-radius:8px;padding:9px 10px;font-size:16px;background:var(--bg)">
-        <option>未付款</option><option>已付款</option><option>待包貨</option><option selected>已到貨</option><option>待售</option><option>待分帳</option></select></label>
+        <option>待分帳</option><option>未付款</option><option>待出荷</option><option selected>已到貨</option><option>待售</option><option>待包貨</option></select></label>
     </div>
     <label class="f">內容<textarea id="bulkText" placeholder="241.7r NT1211&#10;家庭教師&#10;揮旗&#10;整盒 徽章 1 25.9r&#10;整盒 吊飾 1 35.9r&#10;椅子&#10;雲雀 大立牌 150r"></textarea></label>
     <div class="preview" id="bulkPreview">還沒有可匯入的資料</div>
@@ -435,10 +435,10 @@ const imgUrls = new Map();          // image_path -> signed url
 let workFilter = null, chFilter = null;
 try { workFilter = localStorage.getItem(LS_KEY+'-work') || null; } catch(e){}
 let view = 'series', typeFilter = null, query = '', stFilter = null, sortBy = 'order';
-const STATUSES = ['未付款','已付款','待包貨','已到貨','待售','待分帳'];
-const ST_CLS = {'未付款':'s-unpaid','已付款':'s-paid','待包貨':'s-pack','已到貨':'s-arrived','待售':'s-sale','待分帳':'s-split'};
-const ST_DOT = {'未付款':'var(--unpaid)','已付款':'var(--pend)','待包貨':'var(--pack)','已到貨':'var(--twd)','待售':'var(--sale)','待分帳':'var(--split)'};
-function stOf(it){ if (STATUSES.includes(it.status)) return it.status; if (it.status==='待出貨') return '已付款'; return '已到貨'; }
+const STATUSES = ['待分帳','未付款','待出荷','已到貨','待售','待包貨'];
+const ST_CLS = {'未付款':'s-unpaid','待出荷':'s-paid','待包貨':'s-pack','已到貨':'s-arrived','待售':'s-sale','待分帳':'s-split'};
+const ST_DOT = {'未付款':'var(--unpaid)','待出荷':'var(--pend)','待包貨':'var(--pack)','已到貨':'var(--twd)','待售':'var(--sale)','待分帳':'var(--split)'};
+function stOf(it){ if (STATUSES.includes(it.status)) return it.status; if (it.status==='已付款' || it.status==='待出貨') return '待出荷'; return '已到貨'; }
 const closed = new Set();
 try { JSON.parse(localStorage.getItem(LS_KEY+'-closed')||'[]').forEach(s=>closed.add(s)); } catch(e){}
 
@@ -756,7 +756,7 @@ function render(){
           <div class="meta"><span class="num">${sq} 件</span>${sc>0?`<span class="num c">${fmtC(sc)}</span>`:''}<span class="num t">${fmtT(st)}</span></div>
           <button type="button" class="icon-btn" data-act="addTo" aria-label="在這個系列新增">＋</button>
         </div>
-        <div class="rows">${arr.map(rowHtml).join('')}</div>
+        <div class="rows">${arr.map(it=>rowHtml(it)).join('')}</div>
       </section>`;
     }).join('');
     $('#foldAll').textContent = lastSeries.length && lastSeries.every(s=>closed.has(s)) ? '全部展開' : '全部收合';
