@@ -257,14 +257,14 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
         <code>241.7r NT1211</code><span>整單總額（人民幣、台幣），可省略</span>
         <code>家庭教師</code><span>作品</span>
         <code>揮旗</code><span>系列</span>
-        <code>整盒 徽章 1 25.9r</code><span>角色 類型 數量 人民幣單價</span>
-        <code>整盒 閃徽章 1 29.9r</code><span></span>
+        <code>整盒 徽章 25.9r</code><span>角色 類型 人民幣單價</span>
+        <code>整盒 閃徽章 *2 29.9r</code><span>*2 是數量，1 個可省略</span>
         <code>椅子</code><span>下一個系列</span>
-        <code>雲雀 大立牌 150r</code><span>數量 1 可省略</span>
-        <code>雲雀 徽章 1 42r （閃）</code><span>括弧內是備註</span>
+        <code>雲雀 大立牌 150r</code><span></span>
+        <code>雲雀 徽章 42r （閃）</code><span>括弧內是備註</span>
         <code class="gap"></code>
-        <code>手塚 立牌 1 NT300</code><span>NT＋數字：指定台幣</span>
-        <code>手塚 徽章 1 2</code><span>單純數字：比例，分剩下的金額</span>
+        <code>手塚 立牌 NT300</code><span>NT＋數字：指定台幣</span>
+        <code>手塚 徽章 *2 1</code><span>單純數字：比例，分剩下的金額</span>
       </div>
     </div>
     <div class="grid2">
@@ -345,16 +345,16 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
         <code>241.7r NT1211</code><span>整單總額（人民幣、台幣），可省略</span>
         <code>家庭教師</code><span>作品</span>
         <code>揮旗</code><span>系列</span>
-        <code>整盒 徽章 1 25.9r</code><span>角色 類型 數量 人民幣單價</span>
-        <code>整盒 閃徽章 1 29.9r</code><span></span>
+        <code>整盒 徽章 25.9r</code><span>角色 類型 人民幣單價</span>
+        <code>整盒 閃徽章 *2 29.9r</code><span>*2 是數量，1 個可省略</span>
         <code>椅子</code><span>下一個系列</span>
-        <code>雲雀 大立牌 150r</code><span>數量 1 可省略</span>
-        <code>雲雀 徽章 1 42r （閃）</code><span>括弧內是備註</span>
+        <code>雲雀 大立牌 150r</code><span></span>
+        <code>雲雀 徽章 42r （閃）</code><span>括弧內是備註</span>
         <code class="gap"></code>
-        <code>手塚 立牌 1 NT300</code><span>NT＋數字：指定台幣</span>
-        <code>手塚 徽章 1 2</code><span>單純數字：比例，分剩下的金額</span>
+        <code>手塚 立牌 NT300</code><span>NT＋數字：指定台幣</span>
+        <code>手塚 徽章 *2 1</code><span>單純數字：比例，分剩下的金額</span>
       </div>
-      <p class="hint">一單可以有好幾個系列，每個系列名稱各寫一行；品項後面加（括弧）就是備註。標題行容易被誤判時，可以加標註，例如 <span class="num">20周年=>系列</span>、<span class="num">家庭教師=>作品</span>。<br>有寫總額時：<span class="num">57r</span> 依人民幣分攤、<span class="num">NT300</span> 指定台幣、單純數字 <span class="num">2</span> 是比例（前面的數字是數量）；沒寫總額時，每行最後可以加台幣單價，例如 <span class="num">手塚 立牌 1 161r 800</span>。</p>
+      <p class="hint">一單可以有好幾個系列，每個系列名稱各寫一行；品項後面加（括弧）就是備註。標題行容易被誤判時，可以加標註，例如 <span class="num">20周年=>系列</span>、<span class="num">家庭教師=>作品</span>。<br>有寫總額時：<span class="num">57r</span> 依人民幣分攤、<span class="num">NT300</span> 指定台幣、單純數字 <span class="num">2</span> 是比例；數量寫 <span class="num">*2</span>；沒寫總額時，每行最後可以加台幣單價，例如 <span class="num">手塚 立牌 *2 161r 800</span>。</p>
     </div>
     <div class="grid2">
       <label class="f">作品<input id="bulkWork" list="dlWork" required placeholder="例：網球王子"></label>
@@ -947,13 +947,23 @@ function parseBulk(text, knownWorks=[]){
       if (!res.work && (knownWorks.includes(l) || (next && isHeading(next) && !res.rows.length && !series))) { res.work=l; continue; }
       series=l; continue;
     }
-    const tk=stripped.split(/[\s,，、\t]+/).filter(Boolean);
+    let tk=stripped.split(/[\s,，、\t]+/).filter(Boolean);
+    // 數量寫成 *2（也接受 ＊2、×2、x2，或黏在類型後面：徽章*2）
+    let qMark=null;
+    tk = tk.flatMap(t=>{ let m=t.match(/^[\*＊×xX](\d+)$/); if (m){ qMark=+m[1]; return []; }
+      m=t.match(/^(.+?)[\*＊×](\d+)$/); if (m && !/^\d+(\.\d+)?$/.test(m[1])){ qMark=+m[2]; return [m[1]]; } return [t]; });
     const nums=[]; while(tk.length && (isCnyTok(tk[tk.length-1])||isTwdTok(tk[tk.length-1])||isBare(tk[tk.length-1])) && nums.length<3) nums.unshift(tk.pop());
     if (!tk.length || !nums.length){ res.skipped.push(l); continue; }
     let qty=null, cny=null, twd=null, ratio=null; const bare=[];
     nums.forEach(t=>{ if (isCnyTok(t)) cny=val(t); else if (isTwdTok(t)) twd=val(t); else bare.push(val(t)); });
-    if (alloc){
-      // 有整單總額時：57r＝人民幣、NT300＝指定台幣、單純數字＝比例（前面的數字是數量）
+    if (qMark!=null){
+      qty=qMark;
+      if (alloc){ if (cny==null && twd==null && bare.length) ratio=bare.pop(); }
+      else if (cny!=null){ if (bare.length && twd==null) twd=bare.pop(); }
+      else if (bare.length>=2){ if (twd==null){ cny=bare[bare.length-2]; twd=bare[bare.length-1]; } else cny=bare.pop(); }
+      else if (bare.length===1){ if (twd==null) twd=bare[0]; else cny=bare[0]; }
+    } else if (alloc){
+      // 有整單總額時：57r＝人民幣、NT300＝指定台幣、單純數字＝比例（舊寫法：比例前面的數字是數量）
       if (cny==null && twd==null && bare.length) ratio=bare.pop();
       if (bare.length) qty=bare.shift();
     } else if (cny!=null){
@@ -993,7 +1003,7 @@ function parseBulk(text, knownWorks=[]){
   return res;
 }
 const knownWorksList = () => [...new Set(items.map(workOf))];
-const FMT_SAMPLE='241.7r NT1211\n家庭教師\n揮旗\n整盒 徽章 1 25.9r\n整盒 吊飾 1 35.9r\n整盒 閃徽章 1 29.9r\n椅子\n雲雀 大立牌 150r';
+const FMT_SAMPLE='241.7r NT1211\n家庭教師\n揮旗\n整盒 徽章 25.9r\n整盒 吊飾 35.9r\n整盒 閃徽章 29.9r\n椅子\n雲雀 大立牌 150r';
 $('#fmtFill').onclick=()=>{ const t=$('#bulkText'); if (t.value.trim() && !t.value.includes(FMT_SAMPLE)) t.value = FMT_SAMPLE+'\n\n'+t.value; else t.value=FMT_SAMPLE; t.dispatchEvent(new Event('input')); t.focus(); };
 $('#toBulk').onclick=()=>{ closeEdit(); $('#bulkBtn').click(); };
 $('#bulkBtn').onclick=()=>{ if(!$('#bulkWork').value) $('#bulkWork').value = workFilter || DEFAULT_WORK; $('#bulkScrim').hidden=false; updBulk(); setTimeout(()=>$('#bulkText').focus(),50); };
