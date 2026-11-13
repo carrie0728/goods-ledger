@@ -321,6 +321,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
     <div class="actions">
       <button type="button" class="btn danger" id="delBtn" hidden>刪除</button>
       <button type="button" class="btn" id="splitBtn" hidden>開始分帳</button>
+      <button type="button" class="btn" id="dupBtn" hidden>再買一筆</button>
       <div class="r">
         <button type="button" class="btn" id="cancelBtn">取消</button>
         <button type="submit" class="btn pri" id="saveBtn">儲存</button>
@@ -913,9 +914,9 @@ $('#vSeries').onclick=()=>setView('series'); $('#vChar').onclick=()=>setView('ch
 try{ const sv=localStorage.getItem(LS_KEY+'-view'); if (VIEW_BTN[sv]){ view=sv; Object.entries(VIEW_BTN).forEach(([k,id])=>$('#'+id).setAttribute('aria-pressed',k===sv)); } }catch(e){}
 
 // ---------- edit sheet ----------
-let editing=null, pendingImg=null; // pendingImg: {blob, preview} | 'clear' | null
+let editing=null, pendingImg=null, copyImage=null; // pendingImg: {blob, preview} | 'clear' | null；copyImage：再買一筆時沿用的圖片路徑
 function openEdit(it=null, series='', work=''){
-  editing = it; pendingImg=null;
+  editing = it; pendingImg=null; copyImage=null;
   $('#editTitle').textContent = it ? '編輯周邊' : '新增周邊';
   const lastIt = items.length ? items.slice().sort((a,b)=>n(a.created)-n(b.created))[items.length-1] : null;
   $('#fWork').value = it ? workOf(it) : (work || workFilter || (lastIt ? workOf(lastIt) : DEFAULT_WORK));
@@ -958,7 +959,17 @@ $('#fImg').addEventListener('change', async e=>{
 function curFst(){ return (document.querySelector('input[name=fst]:checked')||{}).value || '已到貨'; }
 function updSplitUi(){ const sp = curFst()==='待分帳';
   $('#splitHint').hidden = !sp; $('#fChar').required = !sp; $('#fType').required = !sp; $('#fSeries').required = !sp;
-  $('#splitBtn').hidden = !(editing && stOf(editing)==='待分帳'); }
+  $('#splitBtn').hidden = !(editing && stOf(editing)==='待分帳');
+  $('#dupBtn').hidden = !editing; }
+// 再買一筆：同樣的東西、不同價格，帶入所有欄位變成新的一筆
+$('#dupBtn').onclick=()=>{
+  const src=editing; if(!src) return;
+  editing=null; copyImage = pendingImg==='clear' ? null : (src.image_path||null);
+  $('#editTitle').textContent='再買一筆（'+src.series+'・'+src.character+' '+src.type+'）';
+  $('#fQty').value=1; $('#fCny').value=''; $('#fTwd').value=''; $('#fNote').value='';
+  $('#delBtn').hidden=true; $('#delConfirm').hidden=true; updSplitUi(); updSum();
+  setTimeout(()=>$('#fTwd').focus(),50); toast('已帶入資料，改價格後儲存');
+};
 document.querySelectorAll('input[name=fst]').forEach(r=>r.addEventListener('change', updSplitUi));
 // 分帳：把一筆待分帳拆成明細
 let splitSource=null;
@@ -983,6 +994,7 @@ $('#editForm').addEventListener('submit', async e=>{
   try{
     if (pendingImg==='clear'){ it.image_path=null; }
     else if (pendingImg?.blob){ it.image_path = await uploadImage(pendingImg.blob); }
+    else if (!editing && copyImage){ it.image_path = copyImage; }
     await saveItem(it);
     if (oldPath && oldPath!==it.image_path && !items.some(x=>x.image_path===oldPath)) sb.storage.from(BUCKET).remove([oldPath]).catch(()=>{});
     closeEdit(); toast(editing?'已儲存':'已新增');
