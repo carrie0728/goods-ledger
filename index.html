@@ -298,6 +298,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
       <label class="f cur">台幣單價<span>NT$</span><input id="fTwd" type="number" min="0" step="any" inputmode="decimal" placeholder="150"></label>
     </div>
     <p class="hint" id="fSum">小計：¥0 ／ NT$0</p>
+    <p class="hint" id="mergeHint" hidden style="margin:0;background:var(--accent-soft);color:var(--ink);padding:8px 10px;border-radius:8px"></p>
     <label class="f">購入渠道<input id="fChannel" list="dlChannel" placeholder="例：淘寶、鹹魚、FB"></label>
     <label class="f">備註<input id="fNote" placeholder="例：一對、含殼、編號 33"></label>
     <div class="f" style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)">狀態
@@ -914,9 +915,9 @@ $('#vSeries').onclick=()=>setView('series'); $('#vChar').onclick=()=>setView('ch
 try{ const sv=localStorage.getItem(LS_KEY+'-view'); if (VIEW_BTN[sv]){ view=sv; Object.entries(VIEW_BTN).forEach(([k,id])=>$('#'+id).setAttribute('aria-pressed',k===sv)); } }catch(e){}
 
 // ---------- edit sheet ----------
-let editing=null, pendingImg=null, copyImage=null; // pendingImg: {blob, preview} | 'clear' | null；copyImage：再買一筆時沿用的圖片路徑
+let editing=null, pendingImg=null, copyImage=null, mergeTarget=null; // pendingImg: {blob, preview} | 'clear' | null；copyImage：再買一筆時沿用的圖片路徑
 function openEdit(it=null, series='', work=''){
-  editing = it; pendingImg=null; copyImage=null;
+  editing = it; pendingImg=null; copyImage=null; mergeTarget=null; $('#mergeHint').hidden=true;
   $('#editTitle').textContent = it ? '編輯周邊' : '新增周邊';
   const lastIt = items.length ? items.slice().sort((a,b)=>n(a.created)-n(b.created))[items.length-1] : null;
   $('#fWork').value = it ? workOf(it) : (work || workFilter || (lastIt ? workOf(lastIt) : DEFAULT_WORK));
@@ -932,7 +933,15 @@ function openEdit(it=null, series='', work=''){
 }
 function closeEdit(){ $('#editScrim').hidden=true; $('#fImg').value=''; }
 function setThumb(src){ $('#fThumb').innerHTML = src?`<img src="${esc(src)}" alt="">`:'無圖片'; $('#fImgClear').hidden=!src; }
-function updSum(){ const q=n($('#fQty').value); $('#fSum').textContent=`小計：${fmtC(q*n($('#fCny').value))} ／ ${fmtT(q*n($('#fTwd').value))}`; }
+function mergeCalc(){
+  const m=mergeTarget, q=Math.max(1,parseInt($('#fQty').value)||1), nt=n($('#fTwd').value), nc=n($('#fCny').value);
+  const oq=n(m.qty), tq=oq+q;
+  const twd=(oq*n(m.twd)+q*nt)/tq, cny=(oq*n(m.cny)+q*nc)/tq;
+  return {q, nt, nc, oq, tq, twd:Math.round(twd*100)/100, cny:Math.round(cny*100)/100};
+}
+function updSum(){ const q=n($('#fQty').value); $('#fSum').textContent=`${mergeTarget?'這次購買':'小計'}：${fmtC(q*n($('#fCny').value))} ／ ${fmtT(q*n($('#fTwd').value))}`;
+  if (mergeTarget){ const c=mergeCalc(); const m=mergeTarget;
+    $('#mergeHint').textContent=`合併後共 ${c.tq} 件，台幣均價 ${fmtT(c.twd)}${c.cny>0?`、人民幣均價 ${fmtC(c.cny)}`:''}（原本 ${c.oq} 件，均價 ${fmtT(n(m.twd))}），總額 ${fmtT(c.tq*c.twd)}`; } }
 ['#fQty','#fCny','#fTwd'].forEach(s=>$(s).addEventListener('input',updSum));
 $('#cancelBtn').onclick=closeEdit;
 $('#editScrim').addEventListener('click',e=>{ if(e.target.id==='editScrim') closeEdit(); });
@@ -964,11 +973,11 @@ function updSplitUi(){ const sp = curFst()==='待分帳';
 // 再買一筆：同樣的東西、不同價格，帶入所有欄位變成新的一筆
 $('#dupBtn').onclick=()=>{
   const src=editing; if(!src) return;
-  editing=null; copyImage = pendingImg==='clear' ? null : (src.image_path||null);
+  editing=null; mergeTarget=src; copyImage=null;
   $('#editTitle').textContent='再買一筆（'+src.series+'・'+src.character+' '+src.type+'）';
   $('#fQty').value=1; $('#fCny').value=''; $('#fTwd').value=''; $('#fNote').value='';
-  $('#delBtn').hidden=true; $('#delConfirm').hidden=true; updSplitUi(); updSum();
-  setTimeout(()=>$('#fTwd').focus(),50); toast('已帶入資料，改價格後儲存');
+  $('#delBtn').hidden=true; $('#delConfirm').hidden=true; $('#mergeHint').hidden=false; updSplitUi(); $('#dupBtn').hidden=true; updSum();
+  setTimeout(()=>$('#fTwd').focus(),50); toast('填這次買的數量和價格，會合併並自動算均價');
 };
 document.querySelectorAll('input[name=fst]').forEach(r=>r.addEventListener('change', updSplitUi));
 // 分帳：把一筆待分帳拆成明細
@@ -983,6 +992,23 @@ $('#splitBtn').onclick=()=>{
 };
 $('#editForm').addEventListener('submit', async e=>{
   e.preventDefault();
+  if (mergeTarget){ // 再買一筆：合併到原本那筆，數量相加、單價改成加權平均，備註記下這次的價格
+    const m=mergeTarget, c=mergeCalc(), d=new Date();
+    const it={...m};
+    it.work=$('#fWork').value.trim()||workOf(m); it.series=$('#fSeries').value.trim()||m.series; it.character=$('#fChar').value.trim()||m.character; it.type=$('#fType').value.trim()||m.type;
+    it.channel=$('#fChannel').value.trim(); it.status=curFst();
+    it.qty=c.tq; it.twd=c.twd; it.cny=c.cny;
+    const log=`加購 ${c.q}件 ${c.nt?fmtT(c.nt):''}${c.nc?(c.nt?'／':'')+fmtC(c.nc):''}（${d.getMonth()+1}/${d.getDate()}）`+($('#fNote').value.trim()?' '+$('#fNote').value.trim():'');
+    const hist = (m.note && m.note.includes('加購')) ? m.note : [`原 ${c.oq}件 ${fmtT(n(m.twd))}`, m.note].filter(Boolean).join('｜');
+    it.note = hist + '；' + log;
+    $('#saveBtn').disabled=true;
+    try{
+      if (pendingImg?.blob) it.image_path = await uploadImage(pendingImg.blob);
+      await saveItem(it); closeEdit(); toast(`已合併，共 ${c.tq} 件，均價 ${fmtT(c.twd)}`);
+    }catch(err){ console.warn(err); toast(navigator.onLine?'儲存失敗，請再試一次':'目前離線，連上網路後再儲存'); }
+    finally{ $('#saveBtn').disabled=false; }
+    return;
+  }
   const it = editing ? {...editing} : {created: Date.now()};
   it.work=$('#fWork').value.trim()||DEFAULT_WORK; it.series=$('#fSeries').value.trim()||'待分帳'; it.character=$('#fChar').value.trim()||'多件'; it.type=$('#fType').value.trim()||'待分帳';
   it.qty=Math.max(1,parseInt($('#fQty').value)||1); it.cny=n($('#fCny').value); it.twd=n($('#fTwd').value);
@@ -994,7 +1020,6 @@ $('#editForm').addEventListener('submit', async e=>{
   try{
     if (pendingImg==='clear'){ it.image_path=null; }
     else if (pendingImg?.blob){ it.image_path = await uploadImage(pendingImg.blob); }
-    else if (!editing && copyImage){ it.image_path = copyImage; }
     await saveItem(it);
     if (oldPath && oldPath!==it.image_path && !items.some(x=>x.image_path===oldPath)) sb.storage.from(BUCKET).remove([oldPath]).catch(()=>{});
     closeEdit(); toast(editing?'已儲存':'已新增');
