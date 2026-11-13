@@ -192,6 +192,21 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
 .bmain{min-width:0;display:flex;flex-direction:column;gap:4px}
 .bmain b{font-size:14px;overflow-wrap:anywhere}
 .bnote{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 8px;font-size:14px;width:100%;min-width:0}
+/* 圖鑑 */
+.galchars{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px;padding-bottom:2px}
+.galchars::-webkit-scrollbar{display:none}
+.galchars .chip{flex:none;white-space:nowrap}
+.gal .s-head h2 small{font-size:12px;font-weight:500;color:var(--muted);margin-left:8px;font-family:var(--f-num)}
+.galgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:14px 10px;padding:14px 12px 16px}
+.gtile{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;cursor:pointer;color:inherit}
+.gimg{position:relative;width:100%;aspect-ratio:1/1;max-width:100%}
+.gimg .pic{position:absolute;inset:0;border-radius:14px;overflow:hidden;background:var(--sunk);display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.gimg.round .pic{border-radius:50%}
+.gimg .pic img{width:100%;height:100%;object-fit:cover;display:block}
+.gimg .pic .ph{font-size:11px;color:var(--muted);padding:6px;text-align:center;line-height:1.3;overflow-wrap:anywhere}
+.gimg .cnt{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#6B6F7A;color:#fff;font-family:var(--f-num);font-size:12px;font-weight:600;display:grid;place-items:center;border:2px solid var(--surface)}
+.gtile .glabel{font-size:12px;font-weight:700;text-align:center;line-height:1.3;overflow-wrap:anywhere;max-width:100%}
+.gtile .glabel small{display:block;font-weight:400;color:var(--muted);font-size:11px}
 .menu-item{text-align:left;border-radius:10px!important;padding:12px 14px!important}
 .workbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
 .workbar::-webkit-scrollbar{display:none}
@@ -228,6 +243,7 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
       <button id="vSeries" aria-pressed="true">依系列</button>
       <button id="vChar" aria-pressed="false">依角色</button>
       <button id="vStatus" aria-pressed="false">依狀態</button>
+      <button id="vGal" aria-pressed="false">圖鑑</button>
     </div>
   </div>
   <div class="stbar" id="stBar" role="group" aria-label="依狀態篩選"></div>
@@ -417,6 +433,14 @@ body{font-size:14px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(
   <button class="btn pri" id="aGo" type="submit">登入</button>
   <button class="link" id="aSwitch" type="button">第一次使用？建立帳號</button>
 </form></div>
+
+<div class="scrim" id="groupScrim" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="groupTitle">
+    <h3 id="groupTitle"></h3>
+    <div class="series"><div class="rows" id="groupRows"></div></div>
+    <div class="actions"><div class="r"><button class="btn" id="groupClose" type="button">關閉</button></div></div>
+  </div>
+</div>
 
 <div class="lightbox" id="lightbox" hidden><img id="lbImg" alt=""></div>
 <div class="toast" id="toast" hidden></div>
@@ -722,6 +746,7 @@ function render(){
   if (!rows.length){ list.innerHTML = `<div class="empty"><b>找不到符合的周邊</b>換個關鍵字或類型試試。</div>`; return; }
 
   $('#foldAll').hidden = view==='char'; $('#sortSel').hidden = view!=='series';
+  if (view==='gallery'){ renderGallery(rows, list); return; }
   if (view==='status'){
     const wOrder = works.map(([w])=>w);
     const gs = STATUSES.map(st=>{ const arr=rows.filter(it=>stOf(it)===st); let sq=0,sc=0,stt=0; arr.forEach(it=>{sq+=n(it.qty);sc+=n(it.qty)*n(it.cny);stt+=n(it.qty)*n(it.twd);}); return {k:'st|'+st, st, arr, sq, sc, stt}; }).filter(g=>g.arr.length);
@@ -779,6 +804,61 @@ function render(){
     }</tbody></table></div>`;
   }
 }
+// ---------- 圖鑑：選一個角色，依周邊類型列出所有系列 ----------
+let galChar = null;
+try { galChar = localStorage.getItem(LS_KEY+'-galchar') || null; } catch(e){}
+const charsOf = it => String(it.character||'其他').split('、').map(x=>x.trim()).filter(Boolean);
+let galGroups = new Map();
+function renderGallery(rows, list){
+  const cc = new Map();
+  rows.forEach(it=>charsOf(it).forEach(c=>cc.set(c,(cc.get(c)||0)+n(it.qty))));
+  const chars=[...cc].sort((a,b)=>b[1]-a[1]);
+  if (galChar && galChar!=='__all__' && !cc.has(galChar)) galChar=null;
+  if (galChar===null && chars.length) galChar = chars[0][0];
+  const all = galChar==='__all__';
+  const mine = all ? rows : rows.filter(it=>charsOf(it).includes(galChar));
+  const byType = new Map();
+  mine.slice().sort((a,b)=>n(a.created)-n(b.created)).forEach(it=>{
+    if(!byType.has(it.type)) byType.set(it.type,new Map());
+    const gk = all ? it.series+'\u0001'+it.character : it.series;
+    const m=byType.get(it.type); if(!m.has(gk)) m.set(gk,[]); m.get(gk).push(it);
+  });
+  const types=[...byType].map(([t,m])=>{ let q=0,tw=0; m.forEach(arr=>arr.forEach(it=>{q+=n(it.qty);tw+=n(it.qty)*n(it.twd);})); return {t,m,q,tw}; }).sort((a,b)=>b.q-a.q);
+  galGroups = new Map(); lastSeries=[];
+  const chipsHtml = `<div class="galchars" role="group" aria-label="角色">`+
+    [`<button class="chip" data-gchar="__all__" aria-pressed="${all}">全部角色</button>`, ...chars.map(([c,q])=>`<button class="chip" data-gchar="${esc(c)}" aria-pressed="${galChar===c}">${esc(c)}（${q}）</button>`)].join('')+`</div>`;
+  const secs = types.map(({t,m,q,tw})=>{
+    const key='gal|'+(galChar||'')+'|'+t; lastSeries.push(key);
+    const round = shapeFor(t)==='badge';
+    const tiles=[...m].map(([gk,arr],i)=>{
+      const id=key+'|'+i; galGroups.set(id,arr);
+      const withImg=arr.find(it=>imgSrc(it)); const src=withImg?imgSrc(withImg):'';
+      const cnt=arr.reduce((a,it)=>a+n(it.qty),0); const s0=arr[0];
+      return `<button type="button" class="gtile" data-gid="${esc(id)}">
+        <span class="gimg ${round?'round':''}"><span class="pic">${src?`<img src="${esc(src)}" alt="" loading="lazy">`:`<span class="ph">${esc(s0.series)}</span>`}</span><span class="cnt">${cnt}</span></span>
+        <span class="glabel">${esc(s0.series)}${all?`<small>${esc(s0.character)}</small>`:''}</span></button>`;
+    }).join('');
+    return `<section class="series gal ${closed.has(key)?'closed':''}" data-key="${esc(key)}">
+      <div class="s-head"><button type="button" class="icon-btn collapse" data-act="toggle" aria-label="展開或收合">▾</button>
+        <h2>${esc(t)}<small>${m.size} 種・${q} 件・${fmtT(tw)}</small></h2></div>
+      <div class="rows galgrid">${tiles}</div></section>`;
+  }).join('');
+  list.innerHTML = chipsHtml + (secs || `<div class="empty"><b>這個角色目前沒有符合的周邊</b></div>`);
+  $('#foldAll').textContent = lastSeries.length && lastSeries.every(s=>closed.has(s)) ? '全部展開' : '全部收合';
+}
+function openGroup(arr){
+  if (arr.length===1) return openEdit(arr[0]);
+  const s0=arr[0]; $('#groupTitle').textContent = `${s0.series}・${s0.type}（${arr.reduce((a,it)=>a+n(it.qty),0)} 件）`;
+  $('#groupRows').innerHTML = arr.map(it=>rowHtml(it)).join(''); $('#groupScrim').hidden=false;
+}
+$('#groupClose').onclick=()=>$('#groupScrim').hidden=true;
+$('#groupScrim').addEventListener('click',e=>{
+  if (e.target.id==='groupScrim'){ $('#groupScrim').hidden=true; return; }
+  const row=e.target.closest('.row'); if(!row) return; const it=items.find(x=>x.id===row.dataset.id); if(!it) return;
+  if (e.target.closest('[data-act="zoom"]')){ $('#lbImg').src=imgSrc(it); $('#lightbox').hidden=false; return; }
+  $('#groupScrim').hidden=true; openEdit(it);
+});
+
 function rowHtml(it, showWhere=false){
   const src=imgSrc(it), q=n(it.qty);
   const unit = q>1 ? `<small>單價 ${[cnyPart(n(it.cny)), fmtT(n(it.twd))].filter(Boolean).join(' ／ ')}</small>` : '';
@@ -797,6 +877,10 @@ function rowHtml(it, showWhere=false){
 $('#list').addEventListener('click', e=>{
   const act = e.target.closest('[data-act]')?.dataset.act;
   if (act==='add') return openEdit();
+  const gc = e.target.closest('[data-gchar]');
+  if (gc){ galChar = gc.dataset.gchar; try{ localStorage.setItem(LS_KEY+'-galchar', galChar); }catch(err){} render(); return; }
+  const gt = e.target.closest('.gtile');
+  if (gt){ const arr = galGroups.get(gt.dataset.gid); if (arr) openGroup(arr); return; }
   const sec = e.target.closest('.series');
   if (act==='toggle' && sec){
     const s=sec.dataset.key; closed.has(s)?closed.delete(s):closed.add(s); sec.classList.toggle('closed');
@@ -823,9 +907,10 @@ $('#foldAll').onclick=()=>{ const allClosed = lastSeries.length && lastSeries.ev
   try{localStorage.setItem(LS_KEY+'-closed',JSON.stringify([...closed]));}catch(err){}
   render(); };
 $('#q').addEventListener('input',e=>{ query=e.target.value; render(); });
-function setView(v){ view=v; $('#vSeries').setAttribute('aria-pressed',v==='series'); $('#vChar').setAttribute('aria-pressed',v==='char'); $('#vStatus').setAttribute('aria-pressed',v==='status'); try{localStorage.setItem(LS_KEY+'-view',v);}catch(e){} render(); }
-$('#vSeries').onclick=()=>setView('series'); $('#vChar').onclick=()=>setView('char'); $('#vStatus').onclick=()=>setView('status');
-try{ const sv=localStorage.getItem(LS_KEY+'-view'); if (sv==='char'||sv==='status'){ view=sv; ['vSeries','vChar','vStatus'].forEach(id=>$('#'+id).setAttribute('aria-pressed', id==={series:'vSeries',char:'vChar',status:'vStatus'}[sv])); } }catch(e){}
+const VIEW_BTN={series:'vSeries',char:'vChar',status:'vStatus',gallery:'vGal'};
+function setView(v){ view=v; Object.entries(VIEW_BTN).forEach(([k,id])=>$('#'+id).setAttribute('aria-pressed',k===v)); try{localStorage.setItem(LS_KEY+'-view',v);}catch(e){} render(); }
+$('#vSeries').onclick=()=>setView('series'); $('#vChar').onclick=()=>setView('char'); $('#vStatus').onclick=()=>setView('status'); $('#vGal').onclick=()=>setView('gallery');
+try{ const sv=localStorage.getItem(LS_KEY+'-view'); if (VIEW_BTN[sv]){ view=sv; Object.entries(VIEW_BTN).forEach(([k,id])=>$('#'+id).setAttribute('aria-pressed',k===sv)); } }catch(e){}
 
 // ---------- edit sheet ----------
 let editing=null, pendingImg=null; // pendingImg: {blob, preview} | 'clear' | null
@@ -1077,7 +1162,7 @@ $('#bulkForm').addEventListener('submit',async e=>{
   }catch(err){ console.warn(err); toast(done ? `已記帳 ${done} 筆，第 ${done+1} 筆起失敗，請檢查後再試` : '記帳失敗，請檢查網路後再試'); }
   finally{ $('#bulkGo').disabled=false; $('#bulkGo').textContent='記帳'; }
 });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEdit(); $('#exportScrim').hidden=true; $('#menuScrim').hidden=true; $('#bulkScrim').hidden=true; $('#lightbox').hidden=true; }});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEdit(); $('#exportScrim').hidden=true; $('#menuScrim').hidden=true; $('#groupScrim').hidden=true; $('#bulkScrim').hidden=true; $('#lightbox').hidden=true; }});
 
 // ---------- export ----------
 function exportRows(){
