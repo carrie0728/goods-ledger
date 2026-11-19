@@ -822,7 +822,8 @@ function renderGallery(rows, list){
   const byType = new Map();
   mine.slice().sort((a,b)=>n(a.created)-n(b.created)).forEach(it=>{
     if(!byType.has(it.type)) byType.set(it.type,new Map());
-    const gk = all ? it.series+'\u0001'+it.character : it.series;
+    // 每張不同的圖片各佔一格；同一張圖或沒有圖片的才合併成一格
+    const gk = (all ? it.series+'\u0001'+it.character : it.series) + '\u0001' + (it.image_path || '');
     const m=byType.get(it.type); if(!m.has(gk)) m.set(gk,[]); m.get(gk).push(it);
   });
   const types=[...byType].map(([t,m])=>{ let q=0,tw=0; m.forEach(arr=>arr.forEach(it=>{q+=n(it.qty);tw+=n(it.qty)*n(it.twd);})); return {t,m,q,tw}; }).sort((a,b)=>b.q-a.q);
